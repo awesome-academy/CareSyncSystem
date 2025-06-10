@@ -3,7 +3,6 @@ package com.sun.caresyncsystem.exception;
 import com.sun.caresyncsystem.dto.response.BaseApiResponse;
 import com.sun.caresyncsystem.utils.MessageUtil;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -12,7 +11,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.nio.file.AccessDeniedException;
 
-@Slf4j
 @RequiredArgsConstructor
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -21,24 +19,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<BaseApiResponse<Void>> handleAccessDeniedException(AccessDeniedException e) {
-        ErrorCode errorCode = ErrorCode.ACCESS_DENIED;
-
-        BaseApiResponse<Void> response = new BaseApiResponse<>();
-        response.setCode(errorCode.getCode());
-        response.setMessage(messageUtil.getMessage(errorCode.getMessageKey()));
-
-        return ResponseEntity.status(errorCode.getCode()).body(response);
+        return ResponseEntity.status(ErrorCode.ACCESS_DENIED.getCode())
+                .body(buildErrorResponse(ErrorCode.ACCESS_DENIED));
     }
 
     @ExceptionHandler(AppException.class)
     public ResponseEntity<BaseApiResponse<Void>> handleAppException(AppException exception) {
         ErrorCode errorCode = exception.getErrorCode();
-
-        BaseApiResponse<Void> response = new BaseApiResponse<>();
-        response.setCode(errorCode.getCode());
-        response.setMessage(messageUtil.getMessage(errorCode.getMessageKey(), exception.getArgs()));
-
-        return ResponseEntity.badRequest().body(response);
+        return ResponseEntity.badRequest()
+                .body(buildErrorResponse(errorCode, exception.getArgs()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -53,34 +42,26 @@ public class GlobalExceptionHandler {
             errorCode = ErrorCode.INVALID_ERROR_KEY;
         }
 
-        BaseApiResponse<Void> response = new BaseApiResponse<>();
-        response.setCode(errorCode.getCode());
-        response.setMessage(messageUtil.getMessage(errorCode.getMessageKey()));
-
-        return ResponseEntity.badRequest().body(response);
+        return ResponseEntity.badRequest()
+                .body(buildErrorResponse(errorCode));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<BaseApiResponse<Void>> handleUnexpectedException(Exception e) {
-        log.error("Exception: {}", e.getMessage());
-        ErrorCode errorCode = ErrorCode.UNCATEGORIZED;
-
-        BaseApiResponse<Void> response = new BaseApiResponse<>();
-        response.setCode(errorCode.getCode());
-        response.setMessage(messageUtil.getMessage(errorCode.getMessageKey()));
-
-        return ResponseEntity.badRequest().body(response);
+        return ResponseEntity.badRequest()
+                .body(buildErrorResponse(ErrorCode.UNCATEGORIZED));
     }
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<BaseApiResponse<Void>> handleRuntimeException(RuntimeException e) {
-        log.error("RuntimeException: {}", e.getMessage());
-        ErrorCode errorCode = ErrorCode.UNCATEGORIZED;
+        return ResponseEntity.status(ErrorCode.UNCATEGORIZED.getCode())
+                .body(buildErrorResponse(ErrorCode.UNCATEGORIZED));
+    }
 
+    private BaseApiResponse<Void> buildErrorResponse(ErrorCode errorCode, Object... args) {
         BaseApiResponse<Void> response = new BaseApiResponse<>();
         response.setCode(errorCode.getCode());
-        response.setMessage(messageUtil.getMessage(errorCode.getMessageKey()));
-
-        return ResponseEntity.status(errorCode.getCode()).body(response);
+        response.setMessage(messageUtil.getMessage(errorCode.getMessageKey(), args));
+        return response;
     }
 }
