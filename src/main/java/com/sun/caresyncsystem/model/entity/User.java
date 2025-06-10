@@ -1,9 +1,7 @@
 package com.sun.caresyncsystem.model.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.sun.caresyncsystem.model.enums.UserRole;
+import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
@@ -26,13 +24,25 @@ public class User {
     String password;
     String fullName;
     String phone;
+    String gender;
     String address;
-    String role;
+    String avatarUrl;
+    @Enumerated(EnumType.STRING)
+    UserRole role;
     boolean isActive;
+    boolean isVerified;
+    boolean isApproved;
     LocalDateTime dateOfBirth;
     @CreationTimestamp
     LocalDateTime createAt;
     @UpdateTimestamp
     LocalDateTime updateAt;
     LocalDateTime deleteAt;
+    boolean softDeleted;
+
+    @OneToOne(mappedBy = "user")
+    Patient patient;
+
+    @OneToOne(mappedBy = "user")
+    Doctor doctor;
 }

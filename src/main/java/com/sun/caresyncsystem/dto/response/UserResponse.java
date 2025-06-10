@@ -6,10 +6,23 @@ import java.time.LocalDateTime;
 
 @Builder
 public record UserResponse(
-    Long id,
-    String email,
-    String fullName,
-    String phone,
-    String address,
-    LocalDateTime dateOfBirth
-) {}
+        Long id,
+        String email,
+        String fullName,
+        String phone,
+        String gender,
+        String address,
+        String avatarUrl,
+        LocalDateTime dateOfBirth,
+        boolean isActive,
+        boolean isVerified,
+        boolean isApproved,
+        DoctorResponse doctor,
+        PatientResponse patient
+) {
+    @Builder
+    public record PatientInfo(String insuranceNumber, String nationalId, String medicalHistory) {}
+
+    @Builder
+    public record DoctorInfo(String department, String specialization, String bio, Float ratingAvg) {}
+}
