@@ -7,9 +7,11 @@ import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "users")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -32,7 +34,7 @@ public class User {
     boolean isActive;
     boolean isVerified;
     boolean isApproved;
-    LocalDateTime dateOfBirth;
+    LocalDate dateOfBirth;
     @CreationTimestamp
     LocalDateTime createAt;
     @UpdateTimestamp

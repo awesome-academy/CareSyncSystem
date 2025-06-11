@@ -3,7 +3,7 @@ package com.sun.caresyncsystem.dto.response;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -15,7 +15,7 @@ public record UserResponse(
         String gender,
         String address,
         String avatarUrl,
-        LocalDateTime dateOfBirth,
+        LocalDate dateOfBirth,
         boolean isActive,
         boolean isVerified,
         boolean isApproved,
