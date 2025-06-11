@@ -3,7 +3,7 @@ package com.sun.caresyncsystem.service.impl;
 import com.sun.caresyncsystem.configuration.SecurityProperties;
 import com.sun.caresyncsystem.service.EmailService;
 import com.sun.caresyncsystem.utils.MessageUtil;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
@@ -12,14 +12,12 @@ import org.springframework.stereotype.Service;
 import java.text.MessageFormat;
 
 @Service
+@AllArgsConstructor
 public class EmailServiceImpl implements EmailService {
 
-    @Autowired
-    private JavaMailSender mailSender;
-    @Autowired
-    private MessageUtil messageUtil;
-    @Autowired
-    private SecurityProperties securityProperties;
+    private final JavaMailSender mailSender;
+    private final MessageUtil messageUtil;
+    private final SecurityProperties securityProperties;
 
     @Async
     @Override

@@ -10,12 +10,24 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.nio.file.AccessDeniedException;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @RequiredArgsConstructor
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     private final MessageUtil messageUtil;
+    private static final Map<String, BaseErrorCode> errorCodeMap = Stream.of(
+                    Stream.of(ErrorCode.values()),
+                    Stream.of(ValidationError.values())
+            ).flatMap(s -> s)
+            .collect(Collectors.toMap(
+                    Enum::name,
+                    Function.identity()
+            ));
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<BaseApiResponse<Void>> handleAccessDeniedException(AccessDeniedException e) {
@@ -25,7 +37,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AppException.class)
     public ResponseEntity<BaseApiResponse<Void>> handleAppException(AppException exception) {
-        ErrorCode errorCode = exception.getErrorCode();
+        BaseErrorCode errorCode = exception.getErrorCode();
         return ResponseEntity.badRequest()
                 .body(buildErrorResponse(errorCode, exception.getArgs()));
     }
@@ -34,13 +46,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<BaseApiResponse<Void>> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
         FieldError fieldError = e.getBindingResult().getFieldError();
         String enumKey = (fieldError != null) ? fieldError.getDefaultMessage() : "UNCATEGORIZED";
-
-        ErrorCode errorCode;
-        try {
-            errorCode = ErrorCode.valueOf(enumKey);
-        } catch (Exception ex) {
-            errorCode = ErrorCode.INVALID_ERROR_KEY;
-        }
+        BaseErrorCode errorCode = errorCodeMap.getOrDefault(enumKey, ErrorCode.INVALID_ERROR_KEY);
 
         return ResponseEntity.badRequest()
                 .body(buildErrorResponse(errorCode));
@@ -58,7 +64,7 @@ public class GlobalExceptionHandler {
                 .body(buildErrorResponse(ErrorCode.UNCATEGORIZED));
     }
 
-    private BaseApiResponse<Void> buildErrorResponse(ErrorCode errorCode, Object... args) {
+    private BaseApiResponse<Void> buildErrorResponse(BaseErrorCode errorCode, Object... args) {
         BaseApiResponse<Void> response = new BaseApiResponse<>();
         response.setCode(errorCode.getCode());
         response.setMessage(messageUtil.getMessage(errorCode.getMessageKey(), args));
