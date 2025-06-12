@@ -1,7 +1,7 @@
 package com.sun.caresyncsystem.service.impl;
 
 import com.sun.caresyncsystem.dto.request.UpdateProfileRequest;
-import com.sun.caresyncsystem.dto.response.UserProfileResponse;
+import com.sun.caresyncsystem.dto.response.UserResponse;
 import com.sun.caresyncsystem.exception.AppException;
 import com.sun.caresyncsystem.exception.ErrorCode;
 import com.sun.caresyncsystem.mapper.ToDtoMappers;
@@ -11,12 +11,13 @@ import com.sun.caresyncsystem.model.entity.User;
 import com.sun.caresyncsystem.repository.DoctorRepository;
 import com.sun.caresyncsystem.repository.PatientRepository;
 import com.sun.caresyncsystem.repository.UserRepository;
-import com.sun.caresyncsystem.service.AuthenticationService;
 import com.sun.caresyncsystem.service.ProfileService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -26,57 +27,61 @@ public class ProfileServiceImpl implements ProfileService {
     private final UserRepository userRepository;
     private final DoctorRepository doctorRepository;
     private final PatientRepository patientRepository;
-    private final AuthenticationService authenticationService;
 
     @Override
-    public UserProfileResponse getCurrentUserProfile() {
-        User currentUser = getAuthenticatedUser();
+    public UserResponse getCurrentUserProfile(Long userId) {
+        User currentUser = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND_FROM_TOKEN));
 
-        Doctor doctor = doctorRepository.findByUserId(currentUser.getId()).orElse(null);
-        Patient patient = patientRepository.findByUserId(currentUser.getId()).orElse(null);
-
-        return ToDtoMappers.toUserProfileResponse(currentUser, doctor, patient);
+        return switch (currentUser.getRole()) {
+            case DOCTOR -> {
+                Doctor doctor = doctorRepository.findByUserId(currentUser.getId())
+                        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND_FROM_TOKEN));
+                yield ToDtoMappers.toUserResponse(currentUser, doctor);
+            }
+            case PATIENT -> {
+                Patient patient = patientRepository.findByUserId(currentUser.getId())
+                        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND_FROM_TOKEN));
+                yield ToDtoMappers.toUserResponse(currentUser, patient);
+            }
+            default -> throw new AppException(ErrorCode.UNAUTHORIZED);
+        };
     }
 
     @Override
     @Transactional
-    public UserProfileResponse updateProfile(UpdateProfileRequest request) {
-        User user = getAuthenticatedUser();
+    public UserResponse updateProfile(UpdateProfileRequest request, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND_FROM_TOKEN));
 
         updateUserBasicInfo(user, request);
         userRepository.save(user);
 
-        Doctor doctor = null;
-        Patient patient = null;
-
-        switch (user.getRole()) {
-            case DOCTOR -> doctor = handleDoctorProfileUpdate(user, request);
-            case PATIENT -> patient = handlePatientProfileUpdate(user, request);
+        return switch (user.getRole()) {
+            case DOCTOR -> {
+                Doctor doctor = handleDoctorProfileUpdate(user, request);
+                yield ToDtoMappers.toUserResponse(user, doctor);
+            }
+            case PATIENT -> {
+                Patient patient = handlePatientProfileUpdate(user, request);
+                yield ToDtoMappers.toUserResponse(user, patient);
+            }
             default -> throw new AppException(ErrorCode.UNAUTHORIZED);
-        }
-
-        return ToDtoMappers.toUserProfileResponse(user, doctor, patient);
-    }
-
-    private User getAuthenticatedUser() {
-        return authenticationService.getCurrentUser();
+        };
     }
 
     private void updateUserBasicInfo(User user, UpdateProfileRequest request) {
-        if (request.fullName() != null) user.setFullName(request.fullName());
-        if (request.phone() != null) user.setPhone(request.phone());
-        if (request.dateOfBirth() != null) user.setDateOfBirth(request.dateOfBirth());
-        if (request.gender() != null) user.setGender(request.gender());
-        if (request.address() != null) user.setAddress(request.address());
-        if (request.avatarUrl() != null) user.setAvatarUrl(request.avatarUrl());
+        Optional.ofNullable(request.fullName()).ifPresent(user::setFullName);
+        Optional.ofNullable(request.phone()).ifPresent(user::setPhone);
+        Optional.ofNullable(request.dateOfBirth()).ifPresent(user::setDateOfBirth);
+        Optional.ofNullable(request.gender()).ifPresent(user::setGender);
+        Optional.ofNullable(request.address()).ifPresent(user::setAddress);
+        Optional.ofNullable(request.avatarUrl()).ifPresent(user::setAvatarUrl);
     }
 
     private Doctor handleDoctorProfileUpdate(User user, UpdateProfileRequest request) {
-        Doctor doctor = doctorRepository.findByUserId(user.getId()).orElseGet(() -> {
-            Doctor newDoctor = new Doctor();
-            newDoctor.setUser(user);
-            return newDoctor;
-        });
+        Doctor doctor = doctorRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.DOCTOR_PROFILE_NOT_FOUND));
 
         applyDoctorUpdates(doctor, request);
         return doctorRepository.save(doctor);

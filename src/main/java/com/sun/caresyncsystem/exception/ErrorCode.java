@@ -18,6 +18,7 @@ public enum ErrorCode implements BaseErrorCode {
     INVALID_USER_ROLE(HttpStatus.BAD_REQUEST.value(), "error.invalid.user.role"),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED.value(), "error.unauthorized"),
     INVALID_VERIFICATION_TOKEN(HttpStatus.UNAUTHORIZED.value(), "error.invalid.verification.token"),
+    DOCTOR_PROFILE_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "error.doctor.profile.not.found"),
     ;
 
     private final int code;

@@ -2,17 +2,14 @@ package com.sun.caresyncsystem.mapper;
 
 import com.sun.caresyncsystem.dto.response.DoctorResponse;
 import com.sun.caresyncsystem.dto.response.PatientResponse;
-import com.sun.caresyncsystem.dto.response.UserProfileResponse;
 import com.sun.caresyncsystem.dto.response.UserResponse;
 import com.sun.caresyncsystem.model.entity.Doctor;
 import com.sun.caresyncsystem.model.entity.Patient;
 import com.sun.caresyncsystem.model.entity.User;
-import com.sun.caresyncsystem.model.enums.UserRole;
 
 public class ToDtoMappers {
 
     public static UserResponse toUserResponse(User user, Patient patient) {
-
         PatientResponse patientResponse = PatientResponse.builder()
                     .insuranceNumber(patient.getInsuranceNumber())
                     .nationalId(patient.getNationalId())
@@ -56,25 +53,6 @@ public class ToDtoMappers {
                 .isVerified(user.isVerified())
                 .isApproved(user.isApproved())
                 .doctor(doctorResponse)
-                .build();
-    }
-
-    public static UserProfileResponse toUserProfileResponse(User user, Doctor doctor, Patient patient) {
-        return UserProfileResponse.builder()
-                .email(user.getEmail())
-                .fullName(user.getFullName())
-                .phone(user.getPhone())
-                .dateOfBirth(user.getDateOfBirth())
-                .gender(user.getGender())
-                .address(user.getAddress())
-                .avatarUrl(user.getAvatarUrl())
-                .role(user.getRole())
-                .department(doctor != null ? doctor.getDepartment() : null)
-                .specialization(doctor != null ? doctor.getSpecialization() : null)
-                .bio(doctor != null ? doctor.getBio() : null)
-                .insuranceNumber(patient != null ? patient.getInsuranceNumber() : null)
-                .nationalId(patient != null ? patient.getNationalId() : null)
-                .medicalHistory(patient != null ? patient.getMedicalHistory() : null)
                 .build();
     }
 }
