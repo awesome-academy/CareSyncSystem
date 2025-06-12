@@ -2,14 +2,19 @@ package com.sun.caresyncsystem.service.impl;
 
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import com.sun.caresyncsystem.configuration.SecurityProperties;
 import com.sun.caresyncsystem.dto.request.LoginRequest;
+import com.sun.caresyncsystem.dto.request.VerifyTokenRequest;
 import com.sun.caresyncsystem.dto.response.LoginResponse;
+import com.sun.caresyncsystem.dto.response.VerifyTokenResponse;
 import com.sun.caresyncsystem.exception.AppException;
 import com.sun.caresyncsystem.exception.ErrorCode;
 import com.sun.caresyncsystem.model.entity.User;
 import com.sun.caresyncsystem.model.entity.VerificationToken;
+import com.sun.caresyncsystem.repository.InvalidatedTokenRepository;
 import com.sun.caresyncsystem.repository.UserRepository;
 import com.sun.caresyncsystem.repository.VerificationTokenRepository;
 import com.sun.caresyncsystem.service.AuthenticationService;
@@ -19,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.ParseException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -29,13 +35,14 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class AuthenticationServiceImpl implements AuthenticationService {
+    private static final String CLAIM_SCOPE = "scope";
+    private static final String CLAIM_USER_ID = "userId";
 
     private final UserRepository userRepository;
     private final VerificationTokenRepository verificationTokenRepository;
     private final PasswordService passwordService;
     private final SecurityProperties securityProperties;
-    private static final String CLAIM_SCOPE = "scope";
-    private static final String CLAIM_USER_ID = "userId";
+    private final InvalidatedTokenRepository invalidatedTokenRepository;
 
     @Transactional
     public void activateAccount(String token) {
@@ -87,5 +94,31 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             log.error("Cannot create token", e);
             throw new AppException(ErrorCode.CAN_NOT_CREATE_TOKEN);
         }
+    }
+
+    public VerifyTokenResponse verifyToken(VerifyTokenRequest request)
+            throws JOSEException, ParseException {
+        boolean isValid = true;
+        try {
+            checkValidToken(request.token());
+        } catch (AppException e) {
+            isValid = false;
+        }
+
+        return new VerifyTokenResponse(isValid);
+    }
+
+    private void checkValidToken(String token) throws JOSEException, ParseException {
+        JWSVerifier verifier = new MACVerifier(securityProperties.getJwt().getSignerKey().getBytes());
+        SignedJWT signedJWT = SignedJWT.parse(token);
+        Date expiration = signedJWT.getJWTClaimsSet().getExpirationTime();
+        boolean verified = signedJWT.verify(verifier);
+
+        if (!(verified && expiration.after(new Date())))
+            throw new AppException(ErrorCode.INVALID_TOKEN);
+
+        if (invalidatedTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID()))
+            throw new AppException(ErrorCode.INVALID_TOKEN);
+
     }
 }

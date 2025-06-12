@@ -1,6 +1,7 @@
 package com.sun.caresyncsystem.service.impl;
 
 import com.sun.caresyncsystem.configuration.AppProperties;
+import com.sun.caresyncsystem.dto.request.ApproveDoctorRequest;
 import com.sun.caresyncsystem.dto.request.CreateUserRequest;
 import com.sun.caresyncsystem.dto.response.UserResponse;
 import com.sun.caresyncsystem.exception.AppException;
@@ -11,6 +12,7 @@ import com.sun.caresyncsystem.model.entity.Doctor;
 import com.sun.caresyncsystem.model.entity.Patient;
 import com.sun.caresyncsystem.model.entity.User;
 import com.sun.caresyncsystem.model.entity.VerificationToken;
+import com.sun.caresyncsystem.model.enums.UserRole;
 import com.sun.caresyncsystem.repository.DoctorRepository;
 import com.sun.caresyncsystem.repository.PatientRepository;
 import com.sun.caresyncsystem.repository.UserRepository;
@@ -20,6 +22,8 @@ import com.sun.caresyncsystem.service.PasswordService;
 import com.sun.caresyncsystem.service.UserService;
 import com.sun.caresyncsystem.utils.api.AuthApiPaths;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -115,6 +119,81 @@ public class UserServiceImpl implements UserService {
 
             default -> throw new AppException(ErrorCode.ROLE_NOT_ALLOWED);
         }
+    }
+
+    public Page<UserResponse> getPendingDoctors(Pageable pageable) {
+        Page<Doctor> doctors = doctorRepository.findByUserIsApprovedFalseAndUserDeleteAtIsNull(pageable);
+
+        return doctors.map(doctor -> ToDtoMappers.toUserResponse(doctor.getUser(), doctor));
+    }
+
+    public UserResponse getUserByUserId(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND_FROM_TOKEN));
+
+        return switch (user.getRole()) {
+            case DOCTOR -> {
+                Doctor doctor = doctorRepository.findByUserId(user.getId())
+                        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND_FROM_TOKEN));
+                yield ToDtoMappers.toUserResponse(user, doctor);
+            }
+            case PATIENT -> {
+                Patient patient = patientRepository.findByUserId(user.getId())
+                        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND_FROM_TOKEN));
+                yield ToDtoMappers.toUserResponse(user, patient);
+            }
+            default -> throw new AppException(ErrorCode.UNAUTHORIZED);
+        };
+    }
+
+    @Transactional
+    public void approveDoctor(Long userId, ApproveDoctorRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXIST));
+
+        if (!user.getRole().equals(UserRole.DOCTOR)) {
+            throw new AppException(ErrorCode.ROLE_NOT_ALLOWED);
+        }
+
+        if (user.isApproved()) {
+            throw new AppException(ErrorCode.DOCTOR_ALREADY_APPROVED);
+        }
+
+        if (user.getDeleteAt() != null) {
+            throw new AppException(ErrorCode.DOCTOR_ALREADY_REJECTED);
+        }
+
+        if (Boolean.TRUE.equals(request.isApproved())) {
+            user.setApproved(true);
+
+            String token = UUID.randomUUID().toString();
+            VerificationToken verificationToken = VerificationToken.builder()
+                    .token(token)
+                    .user(user)
+                    .expiryDate(LocalDateTime.now().plusHours(1))
+                    .build();
+            tokenRepository.save(verificationToken);
+
+            String activationLink = UriComponentsBuilder
+                    .fromUriString(appProperties.getBaseUrl())
+                    .path(AuthApiPaths.Endpoint.FULL_ACTIVATE)
+                    .queryParam("token", token)
+                    .build()
+                    .toUriString();
+
+            emailService.sendActivationEmail(user.getEmail(), user.getFullName(), activationLink);
+
+        } else {
+            user.setDeleteAt(LocalDateTime.now());
+
+            emailService.sendRejectDoctorEmail(
+                    user.getEmail(),
+                    user.getFullName(),
+                    request.rejectReason()
+            );
+        }
+
+        userRepository.save(user);
     }
 
     private void validatePatientInfo(CreateUserRequest request) {

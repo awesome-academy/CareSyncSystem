@@ -42,4 +42,21 @@ public class EmailServiceImpl implements EmailService {
 
         mailSender.send(message);
     }
+
+    @Async
+    @Override
+    public void sendRejectDoctorEmail(String to, String fullName, String reason) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        String validReason = reason != null ? reason : messageUtil.getMessage("mail.doctor.rejected.content");
+        message.setTo(to);
+        message.setSubject(messageUtil.getMessage("mail.doctor.rejected.subject"));
+        message.setText(MessageFormat.format(
+                messageUtil.getMessage("mail.doctor.rejected.content"),
+                fullName,
+                validReason
+        ));
+        message.setFrom(securityProperties.getMail().getOwner());
+
+        mailSender.send(message);
+    }
 }
