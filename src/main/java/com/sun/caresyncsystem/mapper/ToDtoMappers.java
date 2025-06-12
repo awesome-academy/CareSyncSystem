@@ -6,12 +6,10 @@ import com.sun.caresyncsystem.dto.response.UserResponse;
 import com.sun.caresyncsystem.model.entity.Doctor;
 import com.sun.caresyncsystem.model.entity.Patient;
 import com.sun.caresyncsystem.model.entity.User;
-import com.sun.caresyncsystem.model.enums.UserRole;
 
 public class ToDtoMappers {
 
     public static UserResponse toUserResponse(User user, Patient patient) {
-
         PatientResponse patientResponse = PatientResponse.builder()
                     .insuranceNumber(patient.getInsuranceNumber())
                     .nationalId(patient.getNationalId())

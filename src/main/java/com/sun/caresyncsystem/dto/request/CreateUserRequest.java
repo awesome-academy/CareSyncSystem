@@ -4,7 +4,7 @@ import com.sun.caresyncsystem.model.enums.UserRole;
 import jakarta.validation.constraints.*;
 import lombok.Builder;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Builder
 public record CreateUserRequest(
@@ -23,7 +23,7 @@ public record CreateUserRequest(
         String address,
         @NotNull(message = "DATE_OF_BIRTH_REQUIRED")
         @Past(message = "DATE_OF_BIRTH_MUST_BE_IN_PAST")
-        LocalDateTime dateOfBirth,
+        LocalDate dateOfBirth,
         @NotBlank(message = "GENDER_REQUIRED")
         @Pattern(regexp = "MALE|FEMALE|OTHER", message = "GENDER_INVALID")
         String gender,
