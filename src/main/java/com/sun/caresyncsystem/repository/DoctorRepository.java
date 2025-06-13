@@ -15,7 +15,7 @@ import java.util.Optional;
 public interface DoctorRepository extends JpaRepository<Doctor, Long> {
     Optional<Doctor> findByUserId(Long userId);
 
-    Page<Doctor> findByUserIsApprovedFalseAndUserDeleteAtIsNull(Pageable pageable);
+    Page<Doctor> findByUserIsApprovedFalseAndUserDeletedAtIsNull(Pageable pageable);
 
     @Query("""
         SELECT new com.sun.caresyncsystem.dto.response.DoctorSearchResponse(
@@ -32,7 +32,8 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long> {
         )
         FROM Doctor d
         JOIN d.schedules s
-        WHERE (:name IS NULL OR LOWER(d.user.fullName) LIKE LOWER(CONCAT('%', :name, '%')))
+        WHERE d.user.deletedAt IS NULL
+        AND (:name IS NULL OR LOWER(d.user.fullName) LIKE LOWER(CONCAT('%', :name, '%')))
         AND (:specialty IS NULL OR d.specialization = :specialty)
         AND (:service IS NULL OR d.service = :service)
         AND (:location IS NULL OR d.location = :location)

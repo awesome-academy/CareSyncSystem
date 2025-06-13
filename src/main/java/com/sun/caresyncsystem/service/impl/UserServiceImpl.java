@@ -122,7 +122,7 @@ public class UserServiceImpl implements UserService {
     }
 
     public Page<UserResponse> getPendingDoctors(Pageable pageable) {
-        Page<Doctor> doctors = doctorRepository.findByUserIsApprovedFalseAndUserDeleteAtIsNull(pageable);
+        Page<Doctor> doctors = doctorRepository.findByUserIsApprovedFalseAndUserDeletedAtIsNull(pageable);
 
         return doctors.map(doctor -> ToDtoMappers.toUserResponse(doctor.getUser(), doctor));
     }
@@ -159,7 +159,7 @@ public class UserServiceImpl implements UserService {
             throw new AppException(ErrorCode.DOCTOR_ALREADY_APPROVED);
         }
 
-        if (user.getDeleteAt() != null) {
+        if (user.getDeletedAt() != null) {
             throw new AppException(ErrorCode.DOCTOR_ALREADY_REJECTED);
         }
 
@@ -184,7 +184,7 @@ public class UserServiceImpl implements UserService {
             emailService.sendActivationEmail(user.getEmail(), user.getFullName(), activationLink);
 
         } else {
-            user.setDeleteAt(LocalDateTime.now());
+            user.setDeletedAt(LocalDateTime.now());
 
             emailService.sendRejectDoctorEmail(
                     user.getEmail(),
