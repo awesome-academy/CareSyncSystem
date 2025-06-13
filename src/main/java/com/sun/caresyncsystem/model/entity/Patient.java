@@ -6,6 +6,7 @@ import lombok.experimental.FieldDefaults;
 
 @Entity
 @Table(name = "patients")
+@ToString(exclude = "user")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

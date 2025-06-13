@@ -54,12 +54,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<BaseApiResponse<Void>> handleUnexpectedException(Exception e) {
+        e.printStackTrace();
         return ResponseEntity.badRequest()
                 .body(buildErrorResponse(ErrorCode.UNCATEGORIZED));
     }
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<BaseApiResponse<Void>> handleRuntimeException(RuntimeException e) {
+        e.printStackTrace();
         return ResponseEntity.status(ErrorCode.UNCATEGORIZED.getCode())
                 .body(buildErrorResponse(ErrorCode.UNCATEGORIZED));
     }
