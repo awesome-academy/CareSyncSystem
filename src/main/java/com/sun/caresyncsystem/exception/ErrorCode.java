@@ -22,6 +22,7 @@ public enum ErrorCode implements BaseErrorCode {
     DOCTOR_ALREADY_APPROVED(HttpStatus.BAD_REQUEST.value(), "error.doctor.already.approved"),
     DOCTOR_ALREADY_REJECTED(HttpStatus.BAD_REQUEST.value(), "error.doctor.already.rejected"),
     FAILED_TO_SEND_EMAIL(HttpStatus.INTERNAL_SERVER_ERROR.value(), "error.failed.to.send.email"),
+    USER_NOT_VERIFIED(HttpStatus.BAD_REQUEST.value(), "error.user.not.verified"),
     ;
 
     private final int code;
