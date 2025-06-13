@@ -5,24 +5,31 @@ import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import com.sun.caresyncsystem.configuration.AppProperties;
 import com.sun.caresyncsystem.configuration.SecurityProperties;
 import com.sun.caresyncsystem.dto.request.LoginRequest;
+import com.sun.caresyncsystem.dto.request.LogoutRequest;
+import com.sun.caresyncsystem.dto.request.ResetPasswordRequest;
 import com.sun.caresyncsystem.dto.request.VerifyTokenRequest;
 import com.sun.caresyncsystem.dto.response.LoginResponse;
 import com.sun.caresyncsystem.dto.response.VerifyTokenResponse;
 import com.sun.caresyncsystem.exception.AppException;
 import com.sun.caresyncsystem.exception.ErrorCode;
+import com.sun.caresyncsystem.model.entity.InvalidatedToken;
 import com.sun.caresyncsystem.model.entity.User;
 import com.sun.caresyncsystem.model.entity.VerificationToken;
 import com.sun.caresyncsystem.repository.InvalidatedTokenRepository;
 import com.sun.caresyncsystem.repository.UserRepository;
 import com.sun.caresyncsystem.repository.VerificationTokenRepository;
 import com.sun.caresyncsystem.service.AuthenticationService;
+import com.sun.caresyncsystem.service.EmailService;
 import com.sun.caresyncsystem.service.PasswordService;
+import com.sun.caresyncsystem.utils.api.AuthApiPaths;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.text.ParseException;
 import java.time.Instant;
@@ -43,6 +50,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final PasswordService passwordService;
     private final SecurityProperties securityProperties;
     private final InvalidatedTokenRepository invalidatedTokenRepository;
+    private final EmailService emailService;
+    private final AppProperties appProperties;
 
     @Transactional
     public void activateAccount(String token) {
@@ -55,6 +64,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         User user = verificationToken.getUser();
         user.setActive(true);
+        user.setVerified(true);
 
         userRepository.save(user);
         verificationTokenRepository.delete(verificationToken);
@@ -66,6 +76,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         boolean isSuccess = passwordService.matches(request.password(), user.getPassword());
         if (!isSuccess)
             throw new AppException(ErrorCode.LOGIN_FAILED);
+
+        if (!user.isVerified()) {
+            throw new AppException(ErrorCode.USER_NOT_VERIFIED);
+        }
+
         String token = generateToken(user);
 
         return new LoginResponse(true, token);
@@ -108,7 +123,63 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         return new VerifyTokenResponse(isValid);
     }
 
-    private void checkValidToken(String token) throws JOSEException, ParseException {
+    public void logout(LogoutRequest request) throws JOSEException, ParseException {
+        var signToken = checkValidToken(request.token());
+        String jid = signToken.getJWTClaimsSet().getJWTID();
+        Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
+
+        InvalidatedToken invalidatedToken = InvalidatedToken.builder()
+                .id(jid)
+                .expiryTime(expiryTime)
+                .build();
+
+        invalidatedTokenRepository.save(invalidatedToken);
+    }
+
+    public void initiatePasswordReset(String email) {
+        User user = userRepository.findUserByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXIST));
+
+        if (!user.isVerified()) {
+            throw new AppException(ErrorCode.USER_NOT_VERIFIED);
+        }
+
+        String token = UUID.randomUUID().toString();
+        VerificationToken verificationToken = VerificationToken.builder()
+                .token(token)
+                .user(user)
+                .expiryDate(LocalDateTime.now().plusHours(1))
+                .build();
+        verificationTokenRepository.save(verificationToken);
+
+        String resetLink = UriComponentsBuilder
+                .fromUriString(appProperties.getBaseUrl())
+                .path(AuthApiPaths.Endpoint.FULL_RESET_PASSWORD)
+                .queryParam("token", token)
+                .build()
+                .toUriString();
+
+        emailService.sendPasswordResetEmail(user.getEmail(), user.getFullName(), resetLink);
+    }
+
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        VerificationToken token = verificationTokenRepository.findByToken(request.token())
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
+
+        if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
+            verificationTokenRepository.delete(token);
+            throw new AppException(ErrorCode.EXPIRED_TOKEN);
+        }
+
+        User user = token.getUser();
+        user.setPassword(passwordService.encodePassword(request.newPassword()));
+        userRepository.save(user);
+
+        verificationTokenRepository.delete(token);
+    }
+
+    private SignedJWT checkValidToken(String token) throws JOSEException, ParseException {
         JWSVerifier verifier = new MACVerifier(securityProperties.getJwt().getSignerKey().getBytes());
         SignedJWT signedJWT = SignedJWT.parse(token);
         Date expiration = signedJWT.getJWTClaimsSet().getExpirationTime();
@@ -120,5 +191,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (invalidatedTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID()))
             throw new AppException(ErrorCode.INVALID_TOKEN);
 
+        return signedJWT;
     }
 }

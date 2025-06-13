@@ -1,15 +1,22 @@
 package com.sun.caresyncsystem.controller;
 
+import com.nimbusds.jose.JOSEException;
 import com.sun.caresyncsystem.dto.request.LoginRequest;
+import com.sun.caresyncsystem.dto.request.LogoutRequest;
+import com.sun.caresyncsystem.dto.request.ForgotPasswordRequest;
+import com.sun.caresyncsystem.dto.request.ResetPasswordRequest;
 import com.sun.caresyncsystem.dto.response.BaseApiResponse;
 import com.sun.caresyncsystem.dto.response.LoginResponse;
 import com.sun.caresyncsystem.service.AuthenticationService;
 import com.sun.caresyncsystem.utils.MessageUtil;
 import com.sun.caresyncsystem.utils.api.AuthApiPaths;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.text.ParseException;
 
 @RestController
 @RequestMapping(AuthApiPaths.BASE)
@@ -34,6 +41,42 @@ public class AuthenticationController {
         return ResponseEntity.ok(new BaseApiResponse<>(
                 HttpStatus.OK.value(),
                 authenticationService.login(loginRequest)
+        ));
+    }
+
+    @PostMapping(AuthApiPaths.Endpoint.LOGOUT)
+    public ResponseEntity<BaseApiResponse<Void>> logout(@RequestBody LogoutRequest request)
+            throws JOSEException, ParseException {
+        authenticationService.logout(request);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                new BaseApiResponse<>(
+                        HttpStatus.OK.value(),
+                        messageUtil.getMessage("auth.logout.success")
+                )
+        );
+    }
+
+    @PostMapping(AuthApiPaths.Endpoint.FORGOT_PASSWORD)
+    public ResponseEntity<BaseApiResponse<String>> forgotPassword(
+            @RequestBody @Valid ForgotPasswordRequest request) {
+        authenticationService.initiatePasswordReset(request.email());
+
+        return ResponseEntity.ok(new BaseApiResponse<>(
+                HttpStatus.OK.value(),
+                messageUtil.getMessage("auth.password.reset.email.sent")
+        ));
+    }
+
+    @PutMapping(AuthApiPaths.Endpoint.RESET_PASSWORD)
+    public ResponseEntity<BaseApiResponse<String>> resetPassword(
+            @RequestBody @Valid ResetPasswordRequest request) {
+
+        authenticationService.resetPassword(request);
+
+        return ResponseEntity.ok(new BaseApiResponse<>(
+                HttpStatus.OK.value(),
+                messageUtil.getMessage("auth.password.reset.success")
         ));
     }
 }
