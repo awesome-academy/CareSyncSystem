@@ -54,6 +54,20 @@ public class EmailServiceImpl implements EmailService {
         sendHtmlEmail(to, subject, content);
     }
 
+    @Async
+    @Override
+    public void sendPasswordResetEmail(String to, String fullName, String resetLink) {
+        String subject = messageUtil.getMessage("mail.password.reset.subject");
+
+        Map<String, Object> variables = Map.of(
+                "fullName", fullName,
+                "resetLink", resetLink
+        );
+
+        String content = generateHtmlContent("password-reset", variables);
+        sendHtmlEmail(to, subject, content);
+    }
+
     private String generateHtmlContent(String templateName, Map<String, Object> variables) {
         Context context = new Context();
         context.setVariables(variables);

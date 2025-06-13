@@ -25,7 +25,9 @@ import static com.sun.caresyncsystem.utils.api.UserApiPaths.Endpoint.FULL_REGIST
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    private final String[] PUBLIC_ENDPOINTS = {FULL_REGISTER, FULL_LOGIN, FULL_LOGOUT, FULL_VERIFY_TOKEN, FULL_ACTIVATE};
+    private final String[] PUBLIC_ENDPOINTS = {FULL_REGISTER, FULL_LOGIN, FULL_LOGOUT, FULL_VERIFY_TOKEN, FULL_ACTIVATE,
+            FULL_FORGOT_PASSWORD,
+            FULL_RESET_PASSWORD};
 
     private static final String ROLE = "ROLE_";
 

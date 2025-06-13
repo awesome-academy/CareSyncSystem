@@ -5,9 +5,11 @@ import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import com.sun.caresyncsystem.configuration.AppProperties;
 import com.sun.caresyncsystem.configuration.SecurityProperties;
 import com.sun.caresyncsystem.dto.request.LoginRequest;
 import com.sun.caresyncsystem.dto.request.LogoutRequest;
+import com.sun.caresyncsystem.dto.request.ResetPasswordRequest;
 import com.sun.caresyncsystem.dto.request.VerifyTokenRequest;
 import com.sun.caresyncsystem.dto.response.LoginResponse;
 import com.sun.caresyncsystem.dto.response.VerifyTokenResponse;
@@ -20,11 +22,14 @@ import com.sun.caresyncsystem.repository.InvalidatedTokenRepository;
 import com.sun.caresyncsystem.repository.UserRepository;
 import com.sun.caresyncsystem.repository.VerificationTokenRepository;
 import com.sun.caresyncsystem.service.AuthenticationService;
+import com.sun.caresyncsystem.service.EmailService;
 import com.sun.caresyncsystem.service.PasswordService;
+import com.sun.caresyncsystem.utils.api.AuthApiPaths;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.text.ParseException;
 import java.time.Instant;
@@ -45,6 +50,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final PasswordService passwordService;
     private final SecurityProperties securityProperties;
     private final InvalidatedTokenRepository invalidatedTokenRepository;
+    private final EmailService emailService;
+    private final AppProperties appProperties;
 
     @Transactional
     public void activateAccount(String token) {
@@ -57,6 +64,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         User user = verificationToken.getUser();
         user.setActive(true);
+        user.setVerified(true);
 
         userRepository.save(user);
         verificationTokenRepository.delete(verificationToken);
@@ -126,6 +134,49 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .build();
 
         invalidatedTokenRepository.save(invalidatedToken);
+    }
+
+    public void initiatePasswordReset(String email) {
+        User user = userRepository.findUserByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXIST));
+
+        if (!user.isVerified()) {
+            throw new AppException(ErrorCode.USER_NOT_VERIFIED);
+        }
+
+        String token = UUID.randomUUID().toString();
+        VerificationToken verificationToken = VerificationToken.builder()
+                .token(token)
+                .user(user)
+                .expiryDate(LocalDateTime.now().plusHours(1))
+                .build();
+        verificationTokenRepository.save(verificationToken);
+
+        String resetLink = UriComponentsBuilder
+                .fromUriString(appProperties.getBaseUrl())
+                .path(AuthApiPaths.Endpoint.FULL_RESET_PASSWORD)
+                .queryParam("token", token)
+                .build()
+                .toUriString();
+
+        emailService.sendPasswordResetEmail(user.getEmail(), user.getFullName(), resetLink);
+    }
+
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        VerificationToken token = verificationTokenRepository.findByToken(request.token())
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
+
+        if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
+            verificationTokenRepository.delete(token);
+            throw new AppException(ErrorCode.EXPIRED_TOKEN);
+        }
+
+        User user = token.getUser();
+        user.setPassword(passwordService.encodePassword(request.newPassword()));
+        userRepository.save(user);
+
+        verificationTokenRepository.delete(token);
     }
 
     private SignedJWT checkValidToken(String token) throws JOSEException, ParseException {
