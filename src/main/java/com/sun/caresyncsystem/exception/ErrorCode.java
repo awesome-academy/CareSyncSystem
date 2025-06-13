@@ -19,6 +19,9 @@ public enum ErrorCode implements BaseErrorCode {
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED.value(), "error.unauthorized"),
     INVALID_VERIFICATION_TOKEN(HttpStatus.UNAUTHORIZED.value(), "error.invalid.verification.token"),
     DOCTOR_PROFILE_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "error.doctor.profile.not.found"),
+    DOCTOR_ALREADY_APPROVED(HttpStatus.BAD_REQUEST.value(), "error.doctor.already.approved"),
+    DOCTOR_ALREADY_REJECTED(HttpStatus.BAD_REQUEST.value(), "error.doctor.already.rejected"),
+    FAILED_TO_SEND_EMAIL(HttpStatus.INTERNAL_SERVER_ERROR.value(), "error.failed.to.send.email"),
     ;
 
     private final int code;

@@ -10,12 +10,12 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 
-import static com.sun.caresyncsystem.utils.AppConstants.BCRYPT_STRENGTH;
 import static com.sun.caresyncsystem.utils.api.AuthApiPaths.Endpoint.*;
 import static com.sun.caresyncsystem.utils.api.UserApiPaths.Endpoint.FULL_REGISTER;
 
@@ -27,16 +27,15 @@ public class SecurityConfig {
 
     private final String[] PUBLIC_ENDPOINTS = {FULL_REGISTER, FULL_LOGIN, FULL_LOGOUT, FULL_VERIFY_TOKEN, FULL_ACTIVATE};
 
+    private static final String ROLE = "ROLE_";
+
     private final MessageUtil messageUtil;
+
+    private final CustomJwtDecoder jwtDecoder;
 
     @Bean
     public AccessDeniedHandler accessDeniedHandler() {
         return new CustomAccessDeniedHandler(messageUtil);
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(BCRYPT_STRENGTH);
     }
 
     @Bean
@@ -49,10 +48,29 @@ public class SecurityConfig {
                         .requestMatchers(AdminApiPaths.BASE_ALL)
                         .hasRole(UserRole.ADMIN.name())
                         .anyRequest().authenticated());
+        http.oauth2ResourceServer(oAuth2 ->
+                oAuth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder)
+                                .jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                        .authenticationEntryPoint(authenticationEntryPoint()));
         http.csrf(AbstractHttpConfigurer::disable);
         http.exceptionHandling(exception -> {
             exception.accessDeniedHandler(accessDeniedHandler());
         });
         return http.build();
+    }
+
+    @Bean
+    public AuthenticationEntryPoint authenticationEntryPoint() {
+        return new JwtAuthenticationEntryPoint(messageUtil);
+    }
+
+    @Bean
+    JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        jwtGrantedAuthoritiesConverter.setAuthorityPrefix(ROLE);
+        JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
+        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
+
+        return jwtAuthenticationConverter;
     }
 }

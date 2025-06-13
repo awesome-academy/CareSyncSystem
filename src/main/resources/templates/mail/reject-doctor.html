@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Doctor Account Rejected</title>
+</head>
+<body>
+<p>Dear <span th:text="${fullName}"></span>,</p>
+<p>We regret to inform you that your doctor account registration has been rejected for the following reason:</p>
+<blockquote style="color: red;"><i th:text="${reason}"></i></blockquote>
+<p>You may reapply with correct and complete information.</p>
+<p>Best regards,<br/>CareSyncSystem Support Team</p>
+</body>
+</html>
