@@ -1,62 +1,77 @@
 package com.sun.caresyncsystem.service.impl;
 
 import com.sun.caresyncsystem.configuration.SecurityProperties;
+import com.sun.caresyncsystem.exception.AppException;
+import com.sun.caresyncsystem.exception.ErrorCode;
 import com.sun.caresyncsystem.service.EmailService;
 import com.sun.caresyncsystem.utils.MessageUtil;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import lombok.AllArgsConstructor;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.spring6.SpringTemplateEngine;
 
-import java.text.MessageFormat;
+import java.util.Map;
 
 @Service
 @AllArgsConstructor
 public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
+    private final SpringTemplateEngine templateEngine;
     private final MessageUtil messageUtil;
     private final SecurityProperties securityProperties;
 
     @Async
     @Override
     public void sendActivationEmail(String to, String name, String activationLink) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(to);
-        message.setSubject(messageUtil.getMessage("mail.activation.subject"));
-        message.setText(messageUtil.getMessage("mail.activation.content") + activationLink);
-        message.setFrom(securityProperties.getMail().getOwner());
-
-        mailSender.send(message);
+        String subject = messageUtil.getMessage("mail.activation.subject");
+        Map<String, Object> variables = Map.of("name", name, "activationLink", activationLink);
+        String content = generateHtmlContent("activation", variables);
+        sendHtmlEmail(to, subject, content);
     }
 
     @Async
     @Override
     public void sendPendingApprovalEmail(String to, String fullName) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(to);
-        message.setSubject(messageUtil.getMessage("mail.doctor.pending.subject"));
-        message.setText(MessageFormat.format(messageUtil.getMessage("mail.doctor.pending.content"), fullName));
-        message.setFrom(securityProperties.getMail().getOwner());
-
-        mailSender.send(message);
+        String subject = messageUtil.getMessage("mail.doctor.pending.subject");
+        Map<String, Object> variables = Map.of("fullName", fullName);
+        String content = generateHtmlContent("pending-approval", variables);
+        sendHtmlEmail(to, subject, content);
     }
 
     @Async
     @Override
     public void sendRejectDoctorEmail(String to, String fullName, String reason) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        String validReason = reason != null ? reason : messageUtil.getMessage("mail.doctor.rejected.content");
-        message.setTo(to);
-        message.setSubject(messageUtil.getMessage("mail.doctor.rejected.subject"));
-        message.setText(MessageFormat.format(
-                messageUtil.getMessage("mail.doctor.rejected.content"),
-                fullName,
-                validReason
-        ));
-        message.setFrom(securityProperties.getMail().getOwner());
+        String subject = messageUtil.getMessage("mail.doctor.rejected.subject");
+        String validReason = reason != null ? reason : messageUtil.getMessage("mail.doctor.default.reason");
+        Map<String, Object> variables = Map.of("fullName", fullName, "reason", validReason);
+        String content = generateHtmlContent("reject-doctor", variables);
+        sendHtmlEmail(to, subject, content);
+    }
 
-        mailSender.send(message);
+    private String generateHtmlContent(String templateName, Map<String, Object> variables) {
+        Context context = new Context();
+        context.setVariables(variables);
+        return templateEngine.process(templateName, context);
+    }
+
+    private void sendHtmlEmail(String to, String subject, String htmlContent) {
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, "UTF-8");
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(htmlContent, true);
+            helper.setFrom(securityProperties.getMail().getOwner());
+
+            mailSender.send(mimeMessage);
+        } catch (MessagingException e) {
+            throw new AppException(ErrorCode.FAILED_TO_SEND_EMAIL);
+        }
     }
 }

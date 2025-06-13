@@ -1,6 +1,6 @@
 package com.sun.caresyncsystem.controller.admin;
 
-import com.sun.caresyncsystem.dto.request.ApproveDoctorRequest;
+import com.sun.caresyncsystem.dto.request.ReviewDoctorRegistrationRequest;
 import com.sun.caresyncsystem.dto.response.BaseApiResponse;
 import com.sun.caresyncsystem.dto.response.UserResponse;
 import com.sun.caresyncsystem.service.UserService;
@@ -36,10 +36,10 @@ public class UserController {
     }
 
     @PutMapping(AdminApiPaths.User.APPROVE_DOCTOR)
-    public ResponseEntity<BaseApiResponse<String>> approveDoctor(
+    public ResponseEntity<BaseApiResponse<String>> reviewDoctorRegistration(
             @PathVariable Long id,
-            @RequestBody @Valid ApproveDoctorRequest request) {
-        userService.approveDoctor(id, request);
+            @RequestBody @Valid ReviewDoctorRegistrationRequest request) {
+        userService.reviewDoctorRegistration(id, request);
         String messageKey = request.isApproved()
                 ? "auth.doctor.approved.success"
                 : "auth.doctor.rejected.success";

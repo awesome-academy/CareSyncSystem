@@ -1,7 +1,7 @@
 package com.sun.caresyncsystem.repository;
 
 import com.sun.caresyncsystem.model.entity.InvalidatedToken;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.repository.CrudRepository;
 
-public interface InvalidatedTokenRepository extends JpaRepository<InvalidatedToken, String> {
+public interface InvalidatedTokenRepository extends CrudRepository<InvalidatedToken, String> {
 }

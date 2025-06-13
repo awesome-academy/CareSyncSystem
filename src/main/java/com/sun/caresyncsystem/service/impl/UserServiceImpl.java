@@ -1,7 +1,7 @@
 package com.sun.caresyncsystem.service.impl;
 
 import com.sun.caresyncsystem.configuration.AppProperties;
-import com.sun.caresyncsystem.dto.request.ApproveDoctorRequest;
+import com.sun.caresyncsystem.dto.request.ReviewDoctorRegistrationRequest;
 import com.sun.caresyncsystem.dto.request.CreateUserRequest;
 import com.sun.caresyncsystem.dto.response.UserResponse;
 import com.sun.caresyncsystem.exception.AppException;
@@ -147,7 +147,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Transactional
-    public void approveDoctor(Long userId, ApproveDoctorRequest request) {
+    public void reviewDoctorRegistration(Long userId, ReviewDoctorRegistrationRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXIST));
 

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Account Activation</title>
+</head>
+<body>
+<p>Dear <span th:text="${name}"></span>,</p>
+<p>Click the link below to activate your account:</p>
+<p><a th:href="${activationLink}">Activate Now</a></p>
+<p>Best regards,<br/>CareSyncSystem</p>
+</body>
+</html>
