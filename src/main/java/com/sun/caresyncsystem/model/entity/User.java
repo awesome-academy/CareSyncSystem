@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
+@ToString(exclude = {"doctor", "patient"})
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -36,11 +37,10 @@ public class User {
     boolean isApproved;
     LocalDate dateOfBirth;
     @CreationTimestamp
-    LocalDateTime createAt;
+    LocalDateTime createdAt;
     @UpdateTimestamp
-    LocalDateTime updateAt;
-    LocalDateTime deleteAt;
-    boolean softDeleted;
+    LocalDateTime updatedAt;
+    LocalDateTime deletedAt;
 
     @OneToOne(mappedBy = "user")
     Patient patient;

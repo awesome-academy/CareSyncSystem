@@ -4,8 +4,11 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
+
 @Entity
 @Table(name = "doctors")
+@ToString(exclude = "user")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -23,6 +26,11 @@ public class Doctor {
 
     String department;
     String specialization;
+    String service;
     String bio;
     Float ratingAvg;
+    String location;
+
+    @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true)
+    List<Schedule> schedules;
 }
