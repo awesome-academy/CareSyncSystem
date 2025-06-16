@@ -3,6 +3,7 @@ package com.sun.caresyncsystem.configuration;
 import com.sun.caresyncsystem.model.enums.UserRole;
 import com.sun.caresyncsystem.utils.MessageUtil;
 import com.sun.caresyncsystem.utils.api.AdminApiPaths;
+import com.sun.caresyncsystem.utils.api.DoctorApiPaths;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,7 +26,7 @@ import static com.sun.caresyncsystem.utils.api.UserApiPaths.Endpoint.FULL_REGIST
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    private final String[] PUBLIC_ENDPOINTS = {FULL_REGISTER, FULL_LOGIN, FULL_LOGOUT, FULL_VERIFY_TOKEN, FULL_ACTIVATE};
+    private final String[] PUBLIC_ENDPOINTS = {FULL_REGISTER, FULL_LOGIN, FULL_LOGOUT, FULL_VERIFY_TOKEN, FULL_ACTIVATE, DoctorApiPaths.Endpoint.FULL_SEARCH};
 
     private static final String ROLE = "ROLE_";
 
