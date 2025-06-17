@@ -23,7 +23,12 @@ public enum ErrorCode implements BaseErrorCode {
     DOCTOR_ALREADY_REJECTED(HttpStatus.BAD_REQUEST.value(), "error.doctor.already.rejected"),
     FAILED_TO_SEND_EMAIL(HttpStatus.INTERNAL_SERVER_ERROR.value(), "error.failed.to.send.email"),
     USER_NOT_VERIFIED(HttpStatus.BAD_REQUEST.value(), "error.user.not.verified"),
-    EXPIRED_TOKEN(HttpStatus.BAD_REQUEST.value(), "auth.password.reset.token.expired")
+    EXPIRED_TOKEN(HttpStatus.BAD_REQUEST.value(), "auth.password.reset.token.expired"),
+    SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "error.schedule.not.found"),
+    SCHEDULE_ALREADY_BOOKED(HttpStatus.BAD_REQUEST.value(), "error.schedule.already.booked"),
+    SCHEDULE_NOT_AVAILABLE(HttpStatus.BAD_REQUEST.value(), "error.schedule.not.available"),
+    SCHEDULE_TIME_CONFLICT(HttpStatus.CONFLICT.value(), "error.schedule.time.conflict"),
+    SCHEDULE_INVALID_DATE(HttpStatus.BAD_REQUEST.value(), "error.schedule.invalid.date"),
     ;
 
     private final int code;
