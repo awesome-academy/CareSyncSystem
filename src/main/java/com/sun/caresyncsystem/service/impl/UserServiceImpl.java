@@ -3,6 +3,7 @@ package com.sun.caresyncsystem.service.impl;
 import com.sun.caresyncsystem.configuration.AppProperties;
 import com.sun.caresyncsystem.dto.request.ReviewDoctorRegistrationRequest;
 import com.sun.caresyncsystem.dto.request.CreateUserRequest;
+import com.sun.caresyncsystem.dto.request.UpdateUserActiveRequest;
 import com.sun.caresyncsystem.dto.response.UserResponse;
 import com.sun.caresyncsystem.exception.AppException;
 import com.sun.caresyncsystem.exception.ErrorCode;
@@ -30,6 +31,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -194,6 +196,46 @@ public class UserServiceImpl implements UserService {
         }
 
         userRepository.save(user);
+    }
+
+    public Page<UserResponse> getAllUsers(Pageable pageable) {
+        Page<User> users = userRepository.findByRoleIn(List.of(UserRole.DOCTOR, UserRole.PATIENT), pageable);
+
+        return users.map(user -> {
+            switch (user.getRole()) {
+                case DOCTOR -> {
+                    Doctor doctor = doctorRepository.findByUserId(user.getId())
+                            .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND_FROM_TOKEN));
+                    return ToDtoMappers.toUserResponse(user, doctor);
+                }
+                case PATIENT -> {
+                    Patient patient = patientRepository.findByUserId(user.getId())
+                            .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND_FROM_TOKEN));
+                    return ToDtoMappers.toUserResponse(user, patient);
+                }
+                default -> throw new AppException(ErrorCode.UNAUTHORIZED);
+            }
+        });
+    }
+
+    @Transactional
+    public void updateUserActiveStatus(Long userId, UpdateUserActiveRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXIST));
+
+        if (user.isActive() == request.isActive()) {
+            throw new AppException(user.isActive()
+                    ? ErrorCode.ACCOUNT_ALREADY_ACTIVE
+                    : ErrorCode.ACCOUNT_ALREADY_DEACTIVATE);
+        }
+
+        user.setActive(request.isActive());
+        userRepository.save(user);
+        if (request.isActive()) {
+            emailService.sendActivationEmailFromAdmin(user.getEmail(), user.getFullName());
+        } else {
+            emailService.sendAccountDeactivatedEmail(user.getEmail(), user.getFullName());
+        }
     }
 
     private void validatePatientInfo(CreateUserRequest request) {

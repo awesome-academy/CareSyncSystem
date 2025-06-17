@@ -31,6 +31,9 @@ public enum ErrorCode implements BaseErrorCode {
     SCHEDULE_INVALID_DATE(HttpStatus.BAD_REQUEST.value(), "error.schedule.invalid.date"),
     BOOKING_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "booking.not.found"),
     INVALID_BOOKING_STATUS(HttpStatus.BAD_REQUEST.value(), "invalid.booking.status"),
+    EXPIRED_TOKEN(HttpStatus.BAD_REQUEST.value(), "auth.password.reset.token.expired"),
+    ACCOUNT_ALREADY_ACTIVE(HttpStatus.BAD_REQUEST.value(), "error.account.already.active"),
+    ACCOUNT_ALREADY_DEACTIVATE(HttpStatus.BAD_REQUEST.value(), "error.account.already.deactivated"),
     ;
 
     private final int code;

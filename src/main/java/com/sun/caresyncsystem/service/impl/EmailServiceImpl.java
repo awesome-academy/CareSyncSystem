@@ -68,6 +68,24 @@ public class EmailServiceImpl implements EmailService {
         sendHtmlEmail(to, subject, content);
     }
 
+    @Async
+    @Override
+    public void sendAccountDeactivatedEmail(String to, String fullName) {
+        String subject = messageUtil.getMessage("mail.account.deactivated.subject");
+        Map<String, Object> variables = Map.of("fullName", fullName);
+        String content = generateHtmlContent("account-deactivated", variables);
+        sendHtmlEmail(to, subject, content);
+    }
+
+    @Async
+    @Override
+    public void sendActivationEmailFromAdmin(String to, String fullName) {
+        String subject = messageUtil.getMessage("mail.activation.subject");
+        Map<String, Object> variables = Map.of("fullName", fullName);
+        String content = generateHtmlContent("account-activated-from-admin", variables);
+        sendHtmlEmail(to, subject, content);
+    }
+
     private String generateHtmlContent(String templateName, Map<String, Object> variables) {
         Context context = new Context();
         context.setVariables(variables);
