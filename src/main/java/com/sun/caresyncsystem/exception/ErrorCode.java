@@ -29,6 +29,8 @@ public enum ErrorCode implements BaseErrorCode {
     SCHEDULE_NOT_AVAILABLE(HttpStatus.BAD_REQUEST.value(), "error.schedule.not.available"),
     SCHEDULE_TIME_CONFLICT(HttpStatus.CONFLICT.value(), "error.schedule.time.conflict"),
     SCHEDULE_INVALID_DATE(HttpStatus.BAD_REQUEST.value(), "error.schedule.invalid.date"),
+    BOOKING_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "booking.not.found"),
+    INVALID_BOOKING_STATUS(HttpStatus.BAD_REQUEST.value(), "invalid.booking.status"),
     ;
 
     private final int code;

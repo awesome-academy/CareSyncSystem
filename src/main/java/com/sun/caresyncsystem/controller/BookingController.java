@@ -1,9 +1,11 @@
 package com.sun.caresyncsystem.controller;
 
 import com.sun.caresyncsystem.dto.request.CreateBookingRequest;
+import com.sun.caresyncsystem.dto.request.UpdateBookingStatusRequest;
 import com.sun.caresyncsystem.dto.response.BaseApiResponse;
 import com.sun.caresyncsystem.service.BookingService;
 import com.sun.caresyncsystem.utils.JwtUtil;
+import com.sun.caresyncsystem.utils.MessageUtil;
 import com.sun.caresyncsystem.utils.api.BookingApiPaths;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -11,10 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping(BookingApiPaths.BASE)
@@ -22,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class BookingController {
 
     private final BookingService bookingService;
+    private final MessageUtil messageUtil;
 
     @PostMapping
     public ResponseEntity<BaseApiResponse<Void>> createBooking(
@@ -32,7 +32,22 @@ public class BookingController {
         bookingService.createBooking(userId, request);
         return ResponseEntity.ok(new BaseApiResponse<>(
                 HttpStatus.OK.value(),
-                "Booking created successfully"
+                messageUtil.getMessage("booking.create.success")
+        ));
+    }
+
+    @PatchMapping(BookingApiPaths.Endpoint.BY_ID)
+    public ResponseEntity<BaseApiResponse<String>> updateBookingStatus(
+            @PathVariable Long id,
+            @RequestBody @Valid UpdateBookingStatusRequest request,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        Long doctorId = JwtUtil.extractUserIdFromJwt(jwt);
+        bookingService.updateBookingStatus(doctorId, id, request.status());
+
+        return ResponseEntity.ok(new BaseApiResponse<>(
+                HttpStatus.OK.value(),
+                messageUtil.getMessage("booking.update.success")
         ));
     }
 }

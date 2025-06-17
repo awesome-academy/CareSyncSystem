@@ -58,4 +58,25 @@ public class BookingServiceImpl implements BookingService {
 
         bookingRepository.save(booking);
     }
+
+    @Override
+    public void updateBookingStatus(Long doctorId, Long bookingId, BookingStatus status) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
+
+        if (!booking.getDoctor().getId().equals(doctorId)) {
+            throw new AppException(ErrorCode.ACCESS_DENIED);
+        }
+
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new AppException(ErrorCode.INVALID_BOOKING_STATUS);
+        }
+
+        if (status != BookingStatus.CONFIRMED && status != BookingStatus.REJECTED) {
+            throw new AppException(ErrorCode.INVALID_BOOKING_STATUS);
+        }
+
+        booking.setStatus(status);
+        bookingRepository.save(booking);
+    }
 }
