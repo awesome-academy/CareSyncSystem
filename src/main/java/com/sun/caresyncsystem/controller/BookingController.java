@@ -1,7 +1,6 @@
 package com.sun.caresyncsystem.controller;
 
 import com.sun.caresyncsystem.dto.request.CreateBookingRequest;
-import com.sun.caresyncsystem.dto.request.UpdateBookingStatusRequest;
 import com.sun.caresyncsystem.dto.response.BaseApiResponse;
 import com.sun.caresyncsystem.service.BookingService;
 import com.sun.caresyncsystem.utils.JwtUtil;
@@ -33,21 +32,6 @@ public class BookingController {
         return ResponseEntity.ok(new BaseApiResponse<>(
                 HttpStatus.OK.value(),
                 messageUtil.getMessage("booking.create.success")
-        ));
-    }
-
-    @PatchMapping(BookingApiPaths.Endpoint.BY_ID)
-    public ResponseEntity<BaseApiResponse<String>> updateBookingStatus(
-            @PathVariable Long id,
-            @RequestBody @Valid UpdateBookingStatusRequest request,
-            @AuthenticationPrincipal Jwt jwt
-    ) {
-        Long doctorId = JwtUtil.extractUserIdFromJwt(jwt);
-        bookingService.updateBookingStatus(doctorId, id, request.status());
-
-        return ResponseEntity.ok(new BaseApiResponse<>(
-                HttpStatus.OK.value(),
-                messageUtil.getMessage("booking.update.success")
         ));
     }
 }
