@@ -2,13 +2,13 @@ package com.sun.caresyncsystem.repository;
 
 import com.sun.caresyncsystem.dto.response.DoctorSearchResponse;
 import com.sun.caresyncsystem.model.entity.Doctor;
-import com.sun.caresyncsystem.model.enums.Weekday;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Optional;
 
@@ -37,7 +37,7 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long> {
         AND (:specialty IS NULL OR d.specialization = :specialty)
         AND (:service IS NULL OR d.service = :service)
         AND (:location IS NULL OR d.location = :location)
-        AND (:weekday IS NULL OR s.weekday = :weekday)
+        AND (:date IS NULL OR s.date = :date)
         AND (:startTime IS NULL OR s.startTime <= :startTime)
         AND (:endTime IS NULL OR s.endTime >= :endTime)
         AND s.isAvailable = true
@@ -48,7 +48,7 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long> {
             @Param("specialty") String specialty,
             @Param("service") String service,
             @Param("location") String location,
-            @Param("weekday") Weekday weekday,
+            @Param("date") LocalDate date,
             @Param("startTime") LocalTime startTime,
             @Param("endTime") LocalTime endTime,
             Pageable pageable

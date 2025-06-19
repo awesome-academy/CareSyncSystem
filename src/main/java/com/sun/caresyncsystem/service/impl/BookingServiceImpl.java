@@ -12,6 +12,7 @@ import com.sun.caresyncsystem.repository.BookingRepository;
 import com.sun.caresyncsystem.repository.ScheduleRepository;
 import com.sun.caresyncsystem.repository.UserRepository;
 import com.sun.caresyncsystem.service.BookingService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +27,7 @@ public class BookingServiceImpl implements BookingService {
     private final UserRepository userRepository;
 
     @Override
+    @Transactional
     public void createBooking(Long userId, CreateBookingRequest request) {
         Schedule schedule = scheduleRepository.findById(request.scheduleId())
                 .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_NOT_FOUND));
@@ -34,9 +36,10 @@ public class BookingServiceImpl implements BookingService {
             throw new AppException(ErrorCode.SCHEDULE_NOT_AVAILABLE);
         }
 
-        boolean hasBooked = bookingRepository.existsByScheduleAndAppointmentDateAndStatus(
-                schedule, request.appointmentDate(), BookingStatus.CONFIRMED);
-        if (hasBooked) {
+        boolean alreadyBooked = bookingRepository.existsByScheduleAndStatus(
+                schedule, BookingStatus.CONFIRMED
+        );
+        if (alreadyBooked) {
             throw new AppException(ErrorCode.SCHEDULE_ALREADY_BOOKED);
         }
 
@@ -49,12 +52,15 @@ public class BookingServiceImpl implements BookingService {
 
         Booking booking = new Booking();
         booking.setSchedule(schedule);
-        booking.setPatient(patient);
         booking.setDoctor(schedule.getDoctor());
-        booking.setAppointmentDate(request.appointmentDate());
+        booking.setPatient(patient);
+        booking.setAppointmentDate(schedule.getDate());
         booking.setNote(request.note());
         booking.setStatus(BookingStatus.PENDING);
         booking.setCreatedAt(LocalDateTime.now());
+
+        schedule.setIsAvailable(false);
+        scheduleRepository.save(schedule);
 
         bookingRepository.save(booking);
     }

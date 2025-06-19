@@ -7,6 +7,7 @@ public class AdminApiPaths {
 
     public static final class User {
         public static final String ADMIN_USER_CONTROLLER = "adminUserController";
+        public static final String ADMIN_BOOKING_CONTROLLER = "adminBookingController";
         public static final String BASE = AdminApiPaths.BASE + "/users";
         public static final String BY_ID = "/{id}";
         public static final String APPROVE_DOCTOR =  BY_ID + "/approve-doctor";
