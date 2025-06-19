@@ -1,6 +1,7 @@
 package com.sun.caresyncsystem.controller.admin;
 
 import com.sun.caresyncsystem.dto.request.ReviewDoctorRegistrationRequest;
+import com.sun.caresyncsystem.dto.request.UpdateUserActiveRequest;
 import com.sun.caresyncsystem.dto.response.BaseApiResponse;
 import com.sun.caresyncsystem.dto.response.UserResponse;
 import com.sun.caresyncsystem.service.UserService;
@@ -43,6 +44,26 @@ public class UserController {
         String messageKey = request.isApproved()
                 ? "auth.doctor.approved.success"
                 : "auth.doctor.rejected.success";
+
+        return ResponseEntity.ok(new BaseApiResponse<>(
+                HttpStatus.OK.value(),
+                messageUtil.getMessage(messageKey)
+        ));
+    }
+
+    @GetMapping()
+    public ResponseEntity<Page<UserResponse>> getAllUsers(Pageable pageable) {
+        return ResponseEntity.ok(userService.getAllUsers(pageable));
+    }
+    @PatchMapping(AdminApiPaths.User.USER_ACTIVE_STATUS)
+    public ResponseEntity<BaseApiResponse<Void>> updateUserActiveStatus(
+            @PathVariable Long userId,
+            @RequestBody @Valid UpdateUserActiveRequest request
+    ) {
+        userService.updateUserActiveStatus(userId, request);
+        String messageKey = request.isActive()
+                ? "auth.activate.account.success"
+                : "auth.deactivate.account.success";
 
         return ResponseEntity.ok(new BaseApiResponse<>(
                 HttpStatus.OK.value(),

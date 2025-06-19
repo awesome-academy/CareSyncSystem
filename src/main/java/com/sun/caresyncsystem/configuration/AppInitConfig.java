@@ -26,6 +26,9 @@ public class AppInitConfig {
                         .email(securityProperties.getAdmin().getUsername())
                         .password(passwordService.encodePassword(securityProperties.getAdmin().getPassword()))
                         .role(UserRole.ADMIN)
+                        .isVerified(true)
+                        .isActive(true)
+                        .isApproved(true)
                         .build();
                 userRepository.save(user);
                 log.warn("Admin created");
