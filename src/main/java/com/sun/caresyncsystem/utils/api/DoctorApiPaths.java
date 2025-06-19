@@ -2,6 +2,7 @@ package com.sun.caresyncsystem.utils.api;
 
 public class DoctorApiPaths {
     public static final String BASE = "/api/v1/doctors";
+    public static final String BASE_ALL = BASE + "/**";
 
     public static class Endpoint {
         public static final String SEARCH = "/search";

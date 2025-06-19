@@ -1,4 +1,4 @@
-package com.sun.caresyncsystem.controller;
+package com.sun.caresyncsystem.controller.doctor;
 
 import com.sun.caresyncsystem.dto.request.DoctorSearchRequest;
 import com.sun.caresyncsystem.dto.request.UpdateBookingStatusRequest;
