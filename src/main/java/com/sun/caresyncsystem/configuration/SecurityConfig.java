@@ -51,6 +51,9 @@ public class SecurityConfig {
                         // add end points for admin here
                         .requestMatchers(AdminApiPaths.BASE_ALL)
                         .hasRole(UserRole.ADMIN.name())
+                        // Endpoints for doctor
+                        .requestMatchers(DoctorApiPaths.BASE_ALL)
+                        .hasRole(UserRole.DOCTOR.name())
                         .anyRequest().authenticated());
         http.oauth2ResourceServer(oAuth2 ->
                 oAuth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder)
