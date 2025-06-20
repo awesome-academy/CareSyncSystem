@@ -2,10 +2,9 @@ package com.sun.caresyncsystem.mapper;
 
 import com.sun.caresyncsystem.dto.response.DoctorResponse;
 import com.sun.caresyncsystem.dto.response.PatientResponse;
+import com.sun.caresyncsystem.dto.response.PaymentResponse;
 import com.sun.caresyncsystem.dto.response.UserResponse;
-import com.sun.caresyncsystem.model.entity.Doctor;
-import com.sun.caresyncsystem.model.entity.Patient;
-import com.sun.caresyncsystem.model.entity.User;
+import com.sun.caresyncsystem.model.entity.*;
 
 public class ToDtoMappers {
 
@@ -54,5 +53,22 @@ public class ToDtoMappers {
                 .isApproved(user.isApproved())
                 .doctor(doctorResponse)
                 .build();
+    }
+
+    public static PaymentResponse toPaymentResponse(Payment payment, String paymentUrl) {
+        return PaymentResponse.builder()
+                .id(payment.getId())
+                .bookingId(payment.getBooking().getId())
+                .amount(payment.getAmount())
+                .paymentMethod(payment.getPaymentMethod())
+                .status(payment.getStatus())
+                .transactionId(payment.getTransactionId())
+                .paidAt(payment.getPaidAt())
+                .paymentUrl(paymentUrl)
+                .build();
+    }
+
+    public static PaymentResponse toPaymentResponse(Payment payment) {
+        return toPaymentResponse(payment, null);
     }
 }

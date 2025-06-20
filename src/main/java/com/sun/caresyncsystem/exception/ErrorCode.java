@@ -35,6 +35,9 @@ public enum ErrorCode implements BaseErrorCode {
     ACCOUNT_ALREADY_DEACTIVATE(HttpStatus.BAD_REQUEST.value(), "error.account.already.deactivated"),
     SCHEDULE_IMPORT_FAIL(HttpStatus.BAD_REQUEST.value(), "schedule.import.fail"),
     IMPORT_FILE_EMPTY(HttpStatus.BAD_REQUEST.value(), "import.file.empty"),
+    PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "payment.not.found"),
+    GENERATE_PAYMENT_URL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR.value(), "error.payment.generate.url"),
+    INVALID_VNPAY_SIGNATURE(HttpStatus.BAD_REQUEST.value(), "error.invalid.vnpay.signature"),
     ;
 
     private final int code;
