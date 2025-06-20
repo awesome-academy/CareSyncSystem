@@ -7,7 +7,7 @@ import com.sun.caresyncsystem.model.entity.Schedule;
 import com.sun.caresyncsystem.repository.DoctorRepository;
 import com.sun.caresyncsystem.repository.ScheduleRepository;
 import com.sun.caresyncsystem.service.ScheduleService;
-import com.sun.caresyncsystem.utils.MessageUtil;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
@@ -30,6 +30,7 @@ public class ScheduleServiceImpl implements ScheduleService {
     private final DoctorRepository doctorRepository;
 
     @Override
+    @Transactional
     public void importSchedules(InputStream inputStream, Long doctorId) {
         try (Workbook workbook = new XSSFWorkbook(inputStream)) {
             Sheet sheet = workbook.getSheetAt(0);
@@ -53,24 +54,19 @@ public class ScheduleServiceImpl implements ScheduleService {
                 try {
                     Schedule schedule = parseSchedule(row, headers, doctor);
                     schedules.add(schedule);
-                } catch (Exception e) {
-                    String errorMsg = "Row " + (i + 1) + " error: " + e.getMessage();
-                    log.warn(errorMsg);
+                } catch (IllegalArgumentException e) {
+                    String errorMsg = "Row " + (i + 1) + ": " + e.getMessage();
                     errors.add(errorMsg);
                 }
             }
 
-            if (!schedules.isEmpty()) {
-                scheduleRepository.saveAll(schedules);
-                log.info("Imported {} schedules for doctor {}", schedules.size(), doctorId);
+            if (!errors.isEmpty()) {
+                throw new AppException(ErrorCode.SCHEDULE_IMPORT_FAIL,
+                        "Import failed with the following errors:\n" + String.join("\n", errors));
             }
 
-            if (!errors.isEmpty()) {
-                log.warn("Import completed with {} errors", errors.size());
-                errors.forEach(log::warn);
-                throw new AppException(ErrorCode.SCHEDULE_IMPORT_FAIL,
-                        "Import completed with errors. Please check the log for details.");
-            }
+            scheduleRepository.saveAll(schedules);
+            log.info("Imported {} schedules for doctor {}", schedules.size(), doctorId);
 
         } catch (IOException e) {
             throw new AppException(ErrorCode.SCHEDULE_IMPORT_FAIL);
@@ -78,19 +74,41 @@ public class ScheduleServiceImpl implements ScheduleService {
     }
 
     private Schedule parseSchedule(Row row, Map<String, Integer> headers, Doctor doctor) {
-        LocalDate date = LocalDate.parse(getCellValue(row, headers.get("date")));
-        LocalTime start = LocalTime.parse(getCellValue(row, headers.get("start_time")));
-        LocalTime end = LocalTime.parse(getCellValue(row, headers.get("end_time")));
-        BigDecimal price = new BigDecimal(getCellValue(row, headers.get("price")));
+        try {
+            String dateStr = getCellValue(row, headers.get("date"));
+            String startStr = getCellValue(row, headers.get("start_time"));
+            String endStr = getCellValue(row, headers.get("end_time"));
+            String priceStr = getCellValue(row, headers.get("price"));
 
-        return Schedule.builder()
-                .doctor(doctor)
-                .date(date)
-                .startTime(start)
-                .endTime(end)
-                .price(price)
-                .isAvailable(true)
-                .build();
+            if (dateStr.isBlank() || startStr.isBlank() || endStr.isBlank() || priceStr.isBlank()) {
+                throw new IllegalArgumentException("Some required fields are empty");
+            }
+
+            LocalDate date = LocalDate.parse(dateStr);
+            LocalTime start = LocalTime.parse(startStr);
+            LocalTime end = LocalTime.parse(endStr);
+            BigDecimal price = new BigDecimal(priceStr);
+
+            if (end.isBefore(start)) {
+                throw new IllegalArgumentException("End time must be after start time");
+            }
+
+            if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException("Price must be a positive number");
+            }
+
+            return Schedule.builder()
+                    .doctor(doctor)
+                    .date(date)
+                    .startTime(start)
+                    .endTime(end)
+                    .price(price)
+                    .isAvailable(true)
+                    .build();
+
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e.getMessage());
+        }
     }
 
     private Map<String, Integer> mapHeaders(Row headerRow) {
@@ -116,17 +134,13 @@ public class ScheduleServiceImpl implements ScheduleService {
     private String getCellValue(Row row, int column) {
         if (column < 0) throw new IllegalArgumentException("Invalid column index: " + column);
         Cell cell = row.getCell(column);
-        if (cell == null) throw new IllegalArgumentException("Missing required cell at column " + column);
+        if (cell == null) throw new IllegalArgumentException("Missing cell at column " + column);
 
         return switch (cell.getCellType()) {
             case STRING -> cell.getStringCellValue().trim();
             case NUMERIC -> {
                 if (DateUtil.isCellDateFormatted(cell)) {
-                    if (cell.getLocalDateTimeCellValue() != null) {
-                        yield cell.getLocalDateTimeCellValue().toLocalDate().toString();
-                    } else {
-                        yield "";
-                    }
+                    yield cell.getLocalDateTimeCellValue().toLocalDate().toString();
                 } else {
                     yield String.valueOf(cell.getNumericCellValue());
                 }
