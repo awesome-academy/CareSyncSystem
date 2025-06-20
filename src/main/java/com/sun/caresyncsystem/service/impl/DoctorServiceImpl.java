@@ -28,7 +28,7 @@ public class DoctorServiceImpl implements DoctorService {
                 request.specialty(),
                 request.service(),
                 request.location(),
-                request.weekday(),
+                request.date(),
                 request.startTime(),
                 request.endTime(),
                 pageable

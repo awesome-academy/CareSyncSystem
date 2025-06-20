@@ -1,10 +1,10 @@
 package com.sun.caresyncsystem.model.entity;
 
-import com.sun.caresyncsystem.model.enums.Weekday;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalTime;
 
 @Entity
@@ -25,8 +25,7 @@ public class Schedule {
     private Doctor doctor;
 
     @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private Weekday weekday;
+    private LocalDate date;
 
     @Column(name = "start_time", nullable = false)
     private LocalTime startTime;

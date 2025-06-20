@@ -1,7 +1,6 @@
 package com.sun.caresyncsystem.dto.request;
 
-import com.sun.caresyncsystem.model.enums.Weekday;
-
+import java.time.LocalDate;
 import java.time.LocalTime;
 
 public record DoctorSearchRequest(
@@ -9,7 +8,7 @@ public record DoctorSearchRequest(
         String specialty,
         String service,
         String location,
-        Weekday weekday,
+        LocalDate date,
         LocalTime startTime,
         LocalTime endTime
 ) {}
