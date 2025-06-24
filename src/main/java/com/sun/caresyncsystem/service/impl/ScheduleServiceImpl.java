@@ -38,7 +38,7 @@ public class ScheduleServiceImpl implements ScheduleService {
                 throw new AppException(ErrorCode.IMPORT_FILE_EMPTY);
             }
 
-            Doctor doctor = doctorRepository.findById(doctorId)
+            Doctor doctor = doctorRepository.findByUserId(doctorId)
                     .orElseThrow(() -> new AppException(ErrorCode.DOCTOR_PROFILE_NOT_FOUND));
 
             Map<String, Integer> headers = mapHeaders(sheet.getRow(0));
@@ -75,18 +75,18 @@ public class ScheduleServiceImpl implements ScheduleService {
 
     private Schedule parseSchedule(Row row, Map<String, Integer> headers, Doctor doctor) {
         try {
-            String dateStr = getCellValue(row, headers.get("date"));
-            String startStr = getCellValue(row, headers.get("start_time"));
-            String endStr = getCellValue(row, headers.get("end_time"));
-            String priceStr = getCellValue(row, headers.get("price"));
+            String dateStr = getCellValueAsString(row, headers.get("date"));
+            String startStr = getCellValueAsString(row, headers.get("start_time"));
+            String endStr = getCellValueAsString(row, headers.get("end_time"));
+            String priceStr = getCellValueAsString(row, headers.get("price"));
 
             if (dateStr.isBlank() || startStr.isBlank() || endStr.isBlank() || priceStr.isBlank()) {
                 throw new IllegalArgumentException("Some required fields are empty");
             }
 
-            LocalDate date = LocalDate.parse(dateStr);
-            LocalTime start = LocalTime.parse(startStr);
-            LocalTime end = LocalTime.parse(endStr);
+            LocalDate date = dateStr.contains("T") ? LocalDate.parse(dateStr.split("T")[0]) : LocalDate.parse(dateStr);
+            LocalTime start = startStr.contains("T") ? LocalTime.parse(startStr.split("T")[1]) : LocalTime.parse(startStr);
+            LocalTime end = endStr.contains("T") ? LocalTime.parse(endStr.split("T")[1]) : LocalTime.parse(endStr);
             BigDecimal price = new BigDecimal(priceStr);
 
             if (end.isBefore(start)) {
@@ -131,7 +131,7 @@ public class ScheduleServiceImpl implements ScheduleService {
         }
     }
 
-    private String getCellValue(Row row, int column) {
+    private String getCellValueAsString(Row row, int column) {
         if (column < 0) throw new IllegalArgumentException("Invalid column index: " + column);
         Cell cell = row.getCell(column);
         if (cell == null) throw new IllegalArgumentException("Missing cell at column " + column);
@@ -140,12 +140,13 @@ public class ScheduleServiceImpl implements ScheduleService {
             case STRING -> cell.getStringCellValue().trim();
             case NUMERIC -> {
                 if (DateUtil.isCellDateFormatted(cell)) {
-                    yield cell.getLocalDateTimeCellValue().toLocalDate().toString();
+                    yield cell.getLocalDateTimeCellValue().toString();
                 } else {
-                    yield String.valueOf(cell.getNumericCellValue());
+                    yield BigDecimal.valueOf(cell.getNumericCellValue()).toPlainString();
                 }
             }
-            default -> throw new IllegalArgumentException("Unsupported cell type at column " + column);
+            case FORMULA -> cell.getCellFormula();
+            default -> "";
         };
     }
 }

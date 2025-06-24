@@ -1,6 +1,7 @@
 package com.sun.caresyncsystem.controller;
 
 import com.sun.caresyncsystem.dto.request.CreateBookingRequest;
+import com.sun.caresyncsystem.dto.request.RescheduleBookingRequest;
 import com.sun.caresyncsystem.dto.response.BaseApiResponse;
 import com.sun.caresyncsystem.service.BookingService;
 import com.sun.caresyncsystem.utils.JwtUtil;
@@ -32,6 +33,30 @@ public class BookingController {
         return ResponseEntity.ok(new BaseApiResponse<>(
                 HttpStatus.OK.value(),
                 messageUtil.getMessage("booking.create.success")
+        ));
+    }
+
+    @PutMapping(BookingApiPaths.Endpoint.RESCHEDULE)
+    public ResponseEntity<BaseApiResponse<String>> rescheduleBooking(
+            @PathVariable Long id,
+            @Valid @RequestBody RescheduleBookingRequest request
+    ) {
+        bookingService.rescheduleBooking(id, request);
+
+        return ResponseEntity.ok(new BaseApiResponse<>(
+                HttpStatus.OK.value(),
+                messageUtil.getMessage("booking.reschedule.success")
+        ));
+    }
+
+    @PutMapping(BookingApiPaths.Endpoint.CANCEL)
+    public ResponseEntity<BaseApiResponse<String>> cancelBooking(
+            @PathVariable Long id
+    ) {
+        bookingService.cancelBooking(id);
+        return ResponseEntity.ok(new BaseApiResponse<>(
+                HttpStatus.OK.value(),
+                messageUtil.getMessage("booking.update.success")
         ));
     }
 }

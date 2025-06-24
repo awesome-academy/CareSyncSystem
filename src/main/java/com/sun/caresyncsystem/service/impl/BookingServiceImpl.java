@@ -1,6 +1,7 @@
 package com.sun.caresyncsystem.service.impl;
 
 import com.sun.caresyncsystem.dto.request.CreateBookingRequest;
+import com.sun.caresyncsystem.dto.request.RescheduleBookingRequest;
 import com.sun.caresyncsystem.exception.AppException;
 import com.sun.caresyncsystem.exception.ErrorCode;
 import com.sun.caresyncsystem.model.entity.Booking;
@@ -63,5 +64,58 @@ public class BookingServiceImpl implements BookingService {
         scheduleRepository.save(schedule);
 
         bookingRepository.save(booking);
+    }
+
+    @Override
+    public void rescheduleBooking(Long bookingId, RescheduleBookingRequest request) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
+
+        if (booking.getStatus() != BookingStatus.CONFIRMED) {
+            throw new AppException(ErrorCode.INVALID_BOOKING_STATUS);
+        }
+
+        Schedule newSchedule = scheduleRepository.findById(request.newScheduleId())
+                .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_NOT_FOUND));
+
+        if (!newSchedule.getIsAvailable()) {
+            throw new AppException(ErrorCode.SCHEDULE_NOT_AVAILABLE);
+        }
+
+        boolean alreadyBooked = bookingRepository.existsByScheduleAndStatus(newSchedule, BookingStatus.CONFIRMED);
+        if (alreadyBooked) {
+            throw new AppException(ErrorCode.SCHEDULE_ALREADY_BOOKED);
+        }
+
+        Schedule oldSchedule = booking.getSchedule();
+        oldSchedule.setIsAvailable(true);
+        scheduleRepository.save(oldSchedule);
+
+        newSchedule.setIsAvailable(false);
+        scheduleRepository.save(newSchedule);
+
+        booking.setSchedule(newSchedule);
+        booking.setAppointmentDate(newSchedule.getDate());
+        booking.setNote(request.note());
+        booking.setStatus(BookingStatus.PENDING);
+        bookingRepository.save(booking);
+    }
+
+    @Override
+    @Transactional
+    public void cancelBooking(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
+
+        if (booking.getStatus() != BookingStatus.PENDING &&
+                booking.getStatus() != BookingStatus.CONFIRMED) {
+            throw new AppException(ErrorCode.INVALID_BOOKING_STATUS);
+        }
+
+        booking.setStatus(BookingStatus.CANCELLED);
+        booking.getSchedule().setIsAvailable(true);
+
+        bookingRepository.save(booking);
+        scheduleRepository.save(booking.getSchedule());
     }
 }
