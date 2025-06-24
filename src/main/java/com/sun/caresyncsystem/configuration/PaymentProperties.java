@@ -17,5 +17,6 @@ public class PaymentProperties {
         private String tmnCode;
         private String hashSecret;
         private String payUrl;
+        private String refundUrl;
     }
 }

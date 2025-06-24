@@ -1,7 +1,10 @@
 package com.sun.caresyncsystem.utils;
 
+import com.nimbusds.jose.shaded.gson.JsonObject;
+import com.nimbusds.jose.shaded.gson.JsonParser;
 import com.sun.caresyncsystem.configuration.AppProperties;
 import com.sun.caresyncsystem.configuration.PaymentProperties;
+import com.sun.caresyncsystem.dto.request.VNPayRefundRequest;
 import com.sun.caresyncsystem.exception.AppException;
 import com.sun.caresyncsystem.exception.ErrorCode;
 import com.sun.caresyncsystem.utils.api.PaymentApiPaths;
@@ -12,10 +15,19 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.math.BigDecimal;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Component
@@ -39,6 +51,7 @@ public class VNPayUtil {
     private static final char AMPERSAND_CHAR = '&';
     private static final char EQUALS_CHAR = '=';
     public static final String PAYMENT_VNPAY_CODE_SUCCESS = "00";
+    public static final String REFUND_VNPAY_CODE_SUCCESS = "02";
 
     private final PaymentProperties paymentProperties;
     private final AppProperties appProperties;
@@ -99,6 +112,76 @@ public class VNPayUtil {
                 .query(queryBuilder.toString())
                 .build()
                 .toUriString();
+    }
+
+    public JsonObject refund(VNPayRefundRequest request) {
+        String requestId = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+
+        String createDate = DateTimeFormatter.ofPattern("yyyyMMddHHmmss")
+                .withZone(ZoneId.of("Asia/Ho_Chi_Minh"))
+                .format(Instant.now());
+
+        String vnp_Amount = request.amount().multiply(BigDecimal.valueOf(100)).toBigInteger().toString();
+
+        String hashData = String.join("|",
+                requestId,
+                "2.1.0",
+                "refund",
+                paymentProperties.getVnPay().getTmnCode(),
+                request.transactionType(),
+                request.transactionId(),
+                vnp_Amount,
+                String.valueOf(request.transactionNo()),
+                request.transactionDate(),
+                request.createBy(),
+                createDate,
+                request.ipAddress(),
+                request.orderInfo()
+        );
+
+        String secureHash = hmacSHA512(paymentProperties.getVnPay().getHashSecret(), hashData);
+
+        JsonObject payload = new JsonObject();
+        payload.addProperty("vnp_RequestId", requestId);
+        payload.addProperty("vnp_Version", "2.1.0");
+        payload.addProperty("vnp_Command", "refund");
+        payload.addProperty("vnp_TmnCode", paymentProperties.getVnPay().getTmnCode());
+        payload.addProperty("vnp_TransactionType", request.transactionType());
+        payload.addProperty("vnp_TxnRef", request.transactionId());
+        payload.addProperty("vnp_Amount", vnp_Amount);
+        payload.addProperty("vnp_TransactionDate", request.transactionDate());
+        payload.addProperty("vnp_CreateBy", request.createBy());
+        payload.addProperty("vnp_CreateDate", createDate);
+        payload.addProperty("vnp_IpAddr", request.ipAddress());
+        payload.addProperty("vnp_OrderInfo", request.orderInfo());
+        payload.addProperty(VNP_TRANSACTION_NO_KEY, request.transactionNo());
+        payload.addProperty("vnp_SecureHash", secureHash);
+
+        try {
+            HttpURLConnection connection = (HttpURLConnection)
+                    new URL(paymentProperties.getVnPay().getRefundUrl()).openConnection();
+
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setDoOutput(true);
+
+            try (OutputStream os = connection.getOutputStream()) {
+                os.write(payload.toString().getBytes(StandardCharsets.UTF_8));
+            }
+
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+                StringBuilder resp = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    resp.append(line);
+                }
+                return JsonParser.parseString(resp.toString()).getAsJsonObject();
+            }
+
+        } catch (IOException e) {
+            throw new AppException(ErrorCode.REFUND_FAILED);
+        }
     }
 
     private String getClientIpAddress(HttpServletRequest request) {
