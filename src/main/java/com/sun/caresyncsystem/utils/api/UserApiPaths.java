@@ -10,4 +10,13 @@ public class UserApiPaths {
         public static final String FULL_INFO = BASE +  INFO;
         public static final String FULL_REGISTER = BASE + REGISTER;
     }
+
+    public static class Chat {
+        public static final String BASE = UserApiPaths.BASE + "/chat";
+        public static final String HISTORY = "/history";
+        public static final String CONVERSATION_ID = "/conversationId";
+        public static final String WEBSOCKET_ENDPOINT = "/ws/chat";
+        public static final String WEBSOCKET_BROKER = "/topic/conversations/";
+        public static final String SEND = "/chat.send.user";
+    }
 }

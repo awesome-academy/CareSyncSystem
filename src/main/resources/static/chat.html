@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <link rel="icon" href="data:,">
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; }
+        .container { display: flex; flex-direction: column; height: 100vh; padding: 20px; }
+        .hidden { display: none; }
+        .messages { list-style: none; padding: 0; flex: 1; overflow-y: auto; }
+        .messages li { margin: 8px 0; padding: 10px; border-radius: 8px; max-width: 60%; display: inline-block; }
+        .message-left { background-color: #ffe6e6; text-align: left; float: left; clear: both; }
+        .message-right { background-color: #d4f7d4; text-align: right; float: right; clear: both; }
+        .chat-input { margin-top: auto; display: flex; gap: 10px; }
+        input[type="text"] { flex: 1; padding: 6px; }
+        button { padding: 6px 12px; }
+        .auth-section input { margin: 5px 0; width: 100%; padding: 8px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Auth UI -->
+    <div id="authSection" class="auth-section">
+        <h2>Enter JWT & Receiver ID</h2>
+        <input type="text" id="tokenInput" placeholder="Paste JWT token here"/>
+        <input type="text" id="receiverIdInput" placeholder="Enter receiverId"/>
+        <button onclick="connect()">Connect</button>
+    </div>
+
+    <!-- Chat UI -->
+    <div id="chatSection" class="hidden">
+        <h2 id="chatTitle">Chat Box</h2>
+        <ul id="chatMessages" class="messages"></ul>
+        <div class="chat-input">
+            <input type="text" id="chatInput" placeholder="Type a message..."/>
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let stompClient;
+    let senderId;
+    let receiverId;
+    let headers;
+
+    function parseJwt(token) {
+        const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+        return JSON.parse(atob(base64));
+    }
+
+    async function connect() {
+        const token = document.getElementById("tokenInput").value.trim();
+        receiverId = document.getElementById("receiverIdInput").value.trim();
+
+        const decodedJwt = parseJwt(token);
+        senderId = decodedJwt.userId;
+        headers = { Authorization: `Bearer ${token}` };
+        const userRole = decodedJwt.scope;     
+        const userEmail = decodedJwt.sub;     
+        document.title = `${userRole} - ${userEmail}`;
+        document.querySelector("#chatTitle").innerText = `${userRole} - ${userEmail}`;
+
+        if (!token || !receiverId) {
+            alert("Please enter token and receiverId.");
+            return;
+        }
+
+        try {
+            // 1) Gọi API lấy conversationId
+            const response = await fetch(`/api/v1/users/chat/conversationId?receiverId=${receiverId}`, {
+                headers: headers
+            });
+            if (!response.ok) {
+                alert("Error getting conversation ID");
+                return;
+            }
+            const data = await response.json();
+            console.log("🔍 Full conversationId API response:", data);
+            const conversationId = data.data;
+            console.log("🎯 conversationId:", conversationId);
+            // 2) Gọi API lấy history
+            const historyResp = await fetch(`/api/v1/users/chat/history?conversationId=${conversationId}&receiverId=${receiverId}`, {
+                headers: headers
+            });
+            if (!historyResp.ok) {
+            alert("Error getting history");
+            return;
+            }
+            const history = await historyResp.json();
+            console.log("📜 history:", history);
+
+            let messages = [];
+
+            if (Array.isArray(history)) {
+                messages = history;
+            } else if (history.data && Array.isArray(history.data)) {
+                messages = history.data;
+            } else {
+                alert("No messages found in history response.");
+                return;
+            }
+
+            // 3) Hiển thị history
+            messages.forEach(msg => appendMessage(msg, msg.senderId === senderId));
+
+            // 4) Kết nối socket
+            const socket = new SockJS("/ws/chat");
+            stompClient = Stomp.over(socket);
+
+            stompClient.connect(headers, () => {
+                console.log("✅ Connected to WebSocket as userId:", senderId);
+                stompClient.subscribe(`/topic/conversations/${conversationId}`, (msg) => {
+                    const data = JSON.parse(msg.body);
+                    const isCurrentUser = data.senderId === senderId;
+                    appendMessage(data, isCurrentUser);
+                });
+
+                document.getElementById("authSection").classList.add("hidden");
+                document.getElementById("chatSection").classList.remove("hidden");
+            }, (error) => {
+                console.error("❌ WebSocket connection error:", error);
+                alert("Failed to connect.");
+            });
+        } catch (error) {
+            console.error("❌ Error:", error);
+            alert("Unexpected error occurred.");
+        }
+    }
+
+    function sendMessage() {
+        const input = document.getElementById("chatInput");
+        const content = input.value.trim();
+        if (!content) return;
+
+        stompClient.send("/app/chat.send.user", headers, JSON.stringify({
+            receiverId: receiverId,
+            senderId: senderId,
+            content: content
+        }));
+        input.value = "";
+    }
+
+    function appendMessage(data, isCurrentUser) {
+        const ul = document.getElementById("chatMessages");
+        const li = document.createElement("li");
+        li.className = isCurrentUser ? "message-right" : "message-left";
+        const time = new Date(data.timestamp).toLocaleTimeString();
+        li.textContent = `[${time}] ${data.content}`;
+        ul.appendChild(li);
+        ul.scrollTop = ul.scrollHeight;
+    }
+</script>
+</body>
+</html>

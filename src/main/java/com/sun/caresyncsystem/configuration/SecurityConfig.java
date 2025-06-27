@@ -29,7 +29,10 @@ public class SecurityConfig {
     private final String[] PUBLIC_ENDPOINTS = {FULL_REGISTER, FULL_LOGIN, FULL_LOGOUT, FULL_VERIFY_TOKEN, FULL_ACTIVATE,
             FULL_FORGOT_PASSWORD,
             FULL_RESET_PASSWORD,
-            DoctorApiPaths.Endpoint.FULL_SEARCH};
+            DoctorApiPaths.Endpoint.FULL_SEARCH,
+            "/chat.html",
+            "/ws/chat/**",
+            "/favicon.ico"};
 
     private static final String ROLE = "ROLE_";
 

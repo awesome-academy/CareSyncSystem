@@ -41,6 +41,8 @@ public enum ErrorCode implements BaseErrorCode {
     REFUND_NOT_ALLOWED(HttpStatus.BAD_REQUEST.value(), "refund.not.allowed"),
     REFUND_FAILED(HttpStatus.BAD_REQUEST.value(), "refund.failed"),
     VNPAY_DETAIL_NOT_FOUND(HttpStatus.BAD_REQUEST.value(), "VnPay.detail.not.found"),
+    INVALID_ROLE_FOR_CONVERSATION(HttpStatus.BAD_REQUEST.value(), "invalid.role.for.conversation"),
+    CONVERSATION_NOT_FOUND(HttpStatus.BAD_REQUEST.value(), "conversation.not.found"),
     ;
 
     private final int code;
