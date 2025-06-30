@@ -38,6 +38,11 @@ public enum ErrorCode implements BaseErrorCode {
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "payment.not.found"),
     GENERATE_PAYMENT_URL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR.value(), "error.payment.generate.url"),
     INVALID_VNPAY_SIGNATURE(HttpStatus.BAD_REQUEST.value(), "error.invalid.vnpay.signature"),
+    REFUND_NOT_ALLOWED(HttpStatus.BAD_REQUEST.value(), "refund.not.allowed"),
+    REFUND_FAILED(HttpStatus.BAD_REQUEST.value(), "refund.failed"),
+    VNPAY_DETAIL_NOT_FOUND(HttpStatus.BAD_REQUEST.value(), "VnPay.detail.not.found"),
+    INVALID_ROLE_FOR_CONVERSATION(HttpStatus.BAD_REQUEST.value(), "invalid.role.for.conversation"),
+    CONVERSATION_NOT_FOUND(HttpStatus.BAD_REQUEST.value(), "conversation.not.found"),
     ;
 
     private final int code;

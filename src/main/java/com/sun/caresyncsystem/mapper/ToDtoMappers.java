@@ -1,9 +1,6 @@
 package com.sun.caresyncsystem.mapper;
 
-import com.sun.caresyncsystem.dto.response.DoctorResponse;
-import com.sun.caresyncsystem.dto.response.PatientResponse;
-import com.sun.caresyncsystem.dto.response.PaymentResponse;
-import com.sun.caresyncsystem.dto.response.UserResponse;
+import com.sun.caresyncsystem.dto.response.*;
 import com.sun.caresyncsystem.model.entity.*;
 
 public class ToDtoMappers {
@@ -70,5 +67,15 @@ public class ToDtoMappers {
 
     public static PaymentResponse toPaymentResponse(Payment payment) {
         return toPaymentResponse(payment, null);
+    }
+
+    public static MessageResponse toMessageResponse(Message msg, String senderRole) {
+        return MessageResponse.builder()
+                .conversationId(msg.getConversation().getId())
+                .content(msg.getContent())
+                .senderRole(senderRole)
+                .timestamp(msg.getTimestamp())
+                .senderId(msg.getSenderId())
+                .build();
     }
 }

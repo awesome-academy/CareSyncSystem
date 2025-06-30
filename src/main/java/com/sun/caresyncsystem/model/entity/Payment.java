@@ -5,6 +5,7 @@ import com.sun.caresyncsystem.model.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -31,6 +32,7 @@ public class Payment {
     PaymentMethod paymentMethod;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 20)
     PaymentStatus status;
 
     String transactionId;
@@ -39,4 +41,8 @@ public class Payment {
 
     @OneToOne(mappedBy = "payment", cascade = CascadeType.ALL, orphanRemoval = true)
     VNPayPayment vnpayPayment;
+
+    @CreationTimestamp
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
 }

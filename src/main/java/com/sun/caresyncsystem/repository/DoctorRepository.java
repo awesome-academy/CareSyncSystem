@@ -53,4 +53,6 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long> {
             @Param("endTime") LocalTime endTime,
             Pageable pageable
     );
+
+    boolean existsByUserId(Long userId);
 }

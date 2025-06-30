@@ -20,7 +20,7 @@ public class VNPayPayment {
     @JoinColumn(name = "payment_id", nullable = false, unique = true)
     Payment payment;
 
-    String vnpTransactionNo;
+    int vnpTransactionNo;
     String vnpBankCode;
     String vnpCardType;
     String vnpPayDate;

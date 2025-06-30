@@ -1,6 +1,9 @@
 package com.sun.caresyncsystem.service.impl;
 
+import com.nimbusds.jose.shaded.gson.JsonObject;
 import com.sun.caresyncsystem.dto.request.CreateVNPayPaymentRequest;
+import com.sun.caresyncsystem.dto.request.RefundPaymentRequest;
+import com.sun.caresyncsystem.dto.request.VNPayRefundRequest;
 import com.sun.caresyncsystem.dto.response.PaymentResponse;
 import com.sun.caresyncsystem.exception.AppException;
 import com.sun.caresyncsystem.exception.ErrorCode;
@@ -72,7 +75,7 @@ public class PaymentServiceImpl implements PaymentService {
             payment.setPaidAt(LocalDateTime.now());
             VNPayPayment vnpDetail = VNPayPayment.builder()
                     .payment(payment)
-                    .vnpTransactionNo(vnpParams.get(VNP_TRANSACTION_NO_KEY))
+                    .vnpTransactionNo(Integer.parseInt(vnpParams.get(VNP_TRANSACTION_NO_KEY)))
                     .vnpBankCode(vnpParams.get(VNP_BANK_CODE_KEY))
                     .vnpCardType(vnpParams.get(VNP_CARD_TYPE_KEY))
                     .vnpPayDate(vnpParams.get(VNP_PAY_DATE_KEY))
@@ -86,5 +89,47 @@ public class PaymentServiceImpl implements PaymentService {
         paymentRepository.save(payment);
 
         return ToDtoMappers.toPaymentResponse(payment);
+    }
+
+    public void refundVNPayById(RefundPaymentRequest request) {
+        Payment payment = paymentRepository.findById(request.paymentId())
+                .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        refundVNPayForBooking(payment, request.actor(), request.ipAddress());
+    }
+
+    private void refundVNPayForBooking(Payment payment, String actor, String ipAddress) {
+        if (payment.getPaymentMethod() != PaymentMethod.VNPay ||
+                payment.getStatus() != PaymentStatus.SUCCESS)
+            throw new AppException(ErrorCode.REFUND_NOT_ALLOWED);
+
+        VNPayRefundRequest refundRequest = getVnPayRefundRequest(payment, actor, ipAddress);
+        JsonObject response = vnPayUtil.refund(refundRequest);
+        String resultCode = response.get(VNP_RESPONSE_CODE_KEY).getAsString();
+
+        if (PAYMENT_VNPAY_CODE_SUCCESS.equals(resultCode)) {
+            payment.setStatus(PaymentStatus.REFUNDED);
+            paymentRepository.save(payment);
+        } else {
+            throw new AppException(ErrorCode.REFUND_FAILED, "VNPay refund failed: " + resultCode);
+        }
+    }
+
+    private VNPayRefundRequest getVnPayRefundRequest(Payment payment, String actor, String ipAddress) {
+        VNPayPayment vnpayDetail = payment.getVnpayPayment();
+        if (vnpayDetail == null || vnpayDetail.getVnpPayDate() == null) {
+            throw new AppException(ErrorCode.VNPAY_DETAIL_NOT_FOUND);
+        }
+
+        return new VNPayRefundRequest(
+                payment.getTransactionId(),
+                payment.getVnpayPayment().getVnpTransactionNo(),
+                vnpayDetail.getVnpPayDate(),
+                payment.getAmount(),
+                REFUND_VNPAY_CODE_SUCCESS,
+                actor,
+                ipAddress,
+                "Refund for booking " + payment.getBooking().getId()
+        );
     }
 }
