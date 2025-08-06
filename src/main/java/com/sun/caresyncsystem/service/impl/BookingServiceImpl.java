@@ -2,8 +2,10 @@ package com.sun.caresyncsystem.service.impl;
 
 import com.sun.caresyncsystem.dto.request.CreateBookingRequest;
 import com.sun.caresyncsystem.dto.request.RescheduleBookingRequest;
+import com.sun.caresyncsystem.dto.response.BookingResponse;
 import com.sun.caresyncsystem.exception.AppException;
 import com.sun.caresyncsystem.exception.ErrorCode;
+import com.sun.caresyncsystem.mapper.ToDtoMappers;
 import com.sun.caresyncsystem.model.entity.Booking;
 import com.sun.caresyncsystem.model.entity.Schedule;
 import com.sun.caresyncsystem.model.entity.User;
@@ -15,6 +17,10 @@ import com.sun.caresyncsystem.repository.UserRepository;
 import com.sun.caresyncsystem.service.BookingService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -117,5 +123,12 @@ public class BookingServiceImpl implements BookingService {
 
         bookingRepository.save(booking);
         scheduleRepository.save(booking.getSchedule());
+    }
+    @Override
+    public Page<BookingResponse> getBookingHistory(Long userId, int pageNumber, int pageSize) {
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Booking> bookingPage = bookingRepository.findAllByPatientId(userId, pageable);
+
+        return bookingPage.map(ToDtoMappers::toBookingResponse);
     }
 }

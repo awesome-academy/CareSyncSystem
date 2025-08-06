@@ -69,6 +69,7 @@ public class ToDtoMappers {
         return toPaymentResponse(payment, null);
     }
 
+<<<<<<< HEAD
     public static MessageResponse toMessageResponse(Message msg, String senderRole) {
         return MessageResponse.builder()
                 .conversationId(msg.getConversation().getId())
@@ -77,5 +78,17 @@ public class ToDtoMappers {
                 .timestamp(msg.getTimestamp())
                 .senderId(msg.getSenderId())
                 .build();
+=======
+    public static BookingResponse toBookingResponse(Booking booking) {
+        return new BookingResponse(
+                booking.getId(),
+                booking.getDoctor().getUser().getFullName(),
+                booking.getAppointmentDate(),
+                booking.getSchedule().getStartTime(),
+                booking.getSchedule().getEndTime(),
+                booking.getStatus(),
+                booking.getNote()
+        );
+>>>>>>> ac05c58 (feat: booking history)
     }
 }

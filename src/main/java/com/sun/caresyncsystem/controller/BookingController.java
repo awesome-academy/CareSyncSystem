@@ -3,12 +3,15 @@ package com.sun.caresyncsystem.controller;
 import com.sun.caresyncsystem.dto.request.CreateBookingRequest;
 import com.sun.caresyncsystem.dto.request.RescheduleBookingRequest;
 import com.sun.caresyncsystem.dto.response.BaseApiResponse;
+import com.sun.caresyncsystem.dto.response.BookingResponse;
 import com.sun.caresyncsystem.service.BookingService;
+import com.sun.caresyncsystem.utils.AppConstants;
 import com.sun.caresyncsystem.utils.JwtUtil;
 import com.sun.caresyncsystem.utils.MessageUtil;
 import com.sun.caresyncsystem.utils.api.BookingApiPaths;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -57,6 +60,22 @@ public class BookingController {
         return ResponseEntity.ok(new BaseApiResponse<>(
                 HttpStatus.OK.value(),
                 messageUtil.getMessage("booking.update.success")
+        ));
+    }
+
+    @GetMapping
+    public ResponseEntity<BaseApiResponse<Page<BookingResponse>>> getBookingHistories
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int pageNumber,
+            @RequestParam(defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int pageSize
+    ) {
+        Long userId = JwtUtil.extractUserIdFromJwt(jwt);
+        Page<BookingResponse> bookings = bookingService.getBookingHistory(userId, pageNumber, pageSize);
+
+        return ResponseEntity.ok(new BaseApiResponse<>(
+                HttpStatus.OK.value(),
+                bookings,
+                messageUtil.getMessage("booking.history.fetched.success")
         ));
     }
 }
